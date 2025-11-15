@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Accuport{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </h2>
+            <p class="text-muted">Welcome, {{ user.full_name }} ({{ user.role.replace('_', ' ').title() }})</p>
+        </div>
+    </div>
+
+    <!-- Vessel Selector -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-ship"></i> Select Vessel</h5>
+                    {% if vessels %}
+                        <select class="form-select" id="vesselSelector" onchange="selectVessel(this.value)">
+                            <option value="">-- Select a vessel --</option>
+                            {% for vessel in vessels %}
+                                <option value="{{ vessel.id }}"
+                                        {% if selected_vessel and vessel.id == selected_vessel.id %}selected{% endif %}>
+                                    {{ vessel.vessel_name }} ({{ vessel.vessel_id }})
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <script>
+                            function selectVessel(vesselId) {
+                                if (vesselId) {
+                                    window.location.href = "{{ url_for('dashboard') }}?vessel_id=" + vesselId;
+                                }
+                            }
+                        </script>
+
+                        <p class="mt-3 mb-0 text-muted">
+                            <small>
+                                <i class="bi bi-info-circle"></i>
+                                You have access to {{ vessels|length }} vessel(s)
+                            </small>
+                        </p>
+                    {% else %}
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            No vessels assigned to your account. Please contact your administrator.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if selected_vessel %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-info-circle"></i> Vessel Information</h5>
+                    <table class="table table-sm mb-0">
+                        <tr>
+                            <th width="40%">Vessel Name:</th>
+                            <td>{{ selected_vessel.vessel_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Vessel ID:</th>
+                            <td>{{ selected_vessel.vessel_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Contact Email:</th>
+                            <td>{{ selected_vessel.email or 'N/A' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if selected_vessel %}
+    <!-- Quick Access to Equipment -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4><i class="bi bi-grid-3x3-gap"></i> Equipment Overview</h4>
+            <p class="text-muted">Select equipment to view detailed measurements and analysis</p>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('boiler_water') }}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center">
+                        <i class="bi bi-droplet-fill text-primary" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Boiler Water</h5>
+                        <p class="text-muted small mb-0">Phosphate, pH, Alkalinity, Conductivity</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('main_engine', engine_num=1) }}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center">
+                        <i class="bi bi-gear-fill text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Main Engines</h5>
+                        <p class="text-muted small mb-0">Cooling Water, Lubricating Oil, Scavenge Drain</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('aux_engine', engine_num=1) }}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center">
+                        <i class="bi bi-gear text-warning" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Auxiliary Engines</h5>
+                        <p class="text-muted small mb-0">Cooling Water, Lubricating Oil</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('potable_water') }}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center">
+                        <i class="bi bi-cup-straw text-info" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Potable Water</h5>
+                        <p class="text-muted small mb-0">pH, Hardness, TDS, Metals, E. coli</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('treated_sewage') }}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center">
+                        <i class="bi bi-droplet-half text-secondary" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Treated Sewage</h5>
+                        <p class="text-muted small mb-0">pH, COD, Chlorine, Turbidity</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('ballast_water') }}" class="text-decoration-none">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center">
+                        <i class="bi bi-water text-success" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Ballast Water</h5>
+                        <p class="text-muted small mb-0">Viable Count, Bacteria, Disinfectants</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerts Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Active Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Location</th>
+                                        <th>Parameter</th>
+                                        <th>Value</th>
+                                        <th>Expected Range</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for alert in alerts[:10] %}
+                                    <tr>
+                                        <td>{{ alert.alert_date[:16] }}</td>
+                                        <td>{{ alert.sampling_point_name or 'N/A' }}</td>
+                                        <td>{{ alert.parameter_name }}</td>
+                                        <td><strong>{{ alert.measured_value }}</strong></td>
+                                        <td>{{ alert.expected_low }} - {{ alert.expected_high }}</td>
+                                        <td>
+                                            <span class="badge
+                                                {% if alert.alert_type == 'CRITICAL' %}bg-danger
+                                                {% elif alert.alert_type == 'WARNING' %}bg-warning text-dark
+                                                {% else %}bg-info{% endif %}">
+                                                {{ alert.alert_type }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if alerts|length > 10 %}
+                        <p class="text-muted mb-0"><small>Showing 10 of {{ alerts|length }} active alerts</small></p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-success mb-0">
+                            <i class="bi bi-check-circle-fill"></i> No active alerts - all parameters within normal ranges
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEMPORARY TROUBLESHOOTING SECTION -->
+    <div class="row mb-4 mt-5">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-bug-fill"></i> TROUBLESHOOTING DATA (TEMPORARY)</h5>
+                </div>
+                <div class="card-body">
+
+                    <!-- Sampling Points -->
+                    <h6 class="text-danger">Sampling Points for {{ selected_vessel.vessel_name }}</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>System Type</th>
+                                    <th>Description</th>
+                                    <th>Active</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sp in troubleshooting_sampling_points %}
+                                <tr>
+                                    <td>{{ sp.id }}</td>
+                                    <td><code>{{ sp.code }}</code></td>
+                                    <td>{{ sp.name }}</td>
+                                    <td>{{ sp.system_type or 'N/A' }}</td>
+                                    <td>{{ sp.description or 'N/A' }}</td>
+                                    <td>
+                                        {% if sp.is_active %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- All Parameters -->
+                    <h6 class="text-danger">All Parameters in System</h6>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Symbol</th>
+                                    <th>Unit</th>
+                                    <th>Ideal Low</th>
+                                    <th>Ideal High</th>
+                                    <th>Category</th>
+                                    <th>Criticality</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for param in troubleshooting_parameters %}
+                                <tr>
+                                    <td>{{ param.id }}</td>
+                                    <td>{{ param.name }}</td>
+                                    <td>{{ param.symbol or 'N/A' }}</td>
+                                    <td>{{ param.unit or 'N/A' }}</td>
+                                    <td>{{ param.ideal_low or 'N/A' }}</td>
+                                    <td>{{ param.ideal_high or 'N/A' }}</td>
+                                    <td>{{ param.category or 'N/A' }}</td>
+                                    <td>{{ param.criticality or 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- All Measurements -->
+                    <h6 class="text-danger">Recent Measurements for {{ selected_vessel.vessel_name }} (Last 500)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Sampling Point</th>
+                                    <th>Code</th>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                    <th>Numeric</th>
+                                    <th>Unit</th>
+                                    <th>Ideal Low</th>
+                                    <th>Ideal High</th>
+                                    <th>Status</th>
+                                    <th>Operator</th>
+                                    <th>Comment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in troubleshooting_measurements %}
+                                <tr>
+                                    <td>{{ m.id }}</td>
+                                    <td><small>{{ m.measurement_date[:16] }}</small></td>
+                                    <td>{{ m.sampling_point_name }}</td>
+                                    <td><code>{{ m.sampling_point_code }}</code></td>
+                                    <td>{{ m.parameter_name }}</td>
+                                    <td><strong>{{ m.value }}</strong></td>
+                                    <td>{{ m.value_numeric or 'N/A' }}</td>
+                                    <td>{{ m.unit or 'N/A' }}</td>
+                                    <td>{{ m.ideal_low or 'N/A' }}</td>
+                                    <td>{{ m.ideal_high or 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge
+                                            {% if m.ideal_status == 'OK' %}bg-success
+                                            {% elif m.ideal_status == 'WARNING' %}bg-warning text-dark
+                                            {% elif m.ideal_status == 'CRITICAL' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ m.ideal_status or 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ m.operator_name or 'N/A' }}</td>
+                                    <td><small>{{ m.comment or '' }}</small></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p class="text-muted mt-3 mb-0">
+                        <small>
+                            <strong>Total:</strong>
+                            {{ troubleshooting_sampling_points|length }} sampling points,
+                            {{ troubleshooting_parameters|length }} parameters,
+                            {{ troubleshooting_measurements|length }} recent measurements shown
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.hover-shadow {
+    transition: all 0.3s ease;
+}
+.hover-shadow:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

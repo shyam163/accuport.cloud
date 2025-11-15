@@ -1,0 +1,73 @@
+Accuport is a platform that provides marine onboard chemical test solutions
+we need to fetch all the available data from labcom database and then format it a bit to store into a sqlite database (accubase.sqlite)
+we need to create a python program to that effect.
+for every vessel there will be a diffent auth token and labcom account
+
+
+
+
+Enhanced Tables:
+
+  1. SAMPLING_POINTS - Added activity tracking and location info
+  2. PARAMETERS - Added ideal ranges, category, and criticality levels
+  3. MEASUREMENTS - Major enhancements:
+    - String + numeric value storage
+    - Quality control fields (ideal_status, ideal_low/high)
+    - Operator and device tracking
+    - Data validation flags
+    - Multiple indexes for performance
+
+  New Tables:
+
+  4. ALERTS - Automatic out-of-range detection
+    - 7 alerts automatically generated from MV October data
+    - Tracks TOO LOW, TOO HIGH, CRITICAL conditions
+    - Acknowledgment and resolution workflow
+  5. PARAMETER_LIMITS - Custom limits per sampling point
+    - Three-tier thresholds (ideal/warning/critical)
+    - Time-based limits support
+  6. FETCH_LOGS - Enhanced with detailed statistics
+
+  📊 Test Results (MV October)
+
+  ✓ 67 measurements stored with full quality control data
+  ✓ 7 automatic alerts generated for out-of-range values
+  ✓ 19 sampling points synced
+  ✓ 25 unique parameters tracked
+  ✓ All data includes operator, device, and timestamp info
+
+  🚨 Sample Alerts Detected
+
+  - Iron-in-Oil: 3 scavenge drains below minimum (20-35 mg/l vs 50-450 expected)
+  - Composite Boiler: 4 parameters out of range (chloride, alkalinity, phosphate)
+
+  📁 Files Created/Modified
+
+  Modified:
+  - db_schema.py - Enhanced schema
+  - data_manager.py - Updated for new fields
+
+  Created:
+  - fetch_and_store.py - Enhanced fetch script
+  - SCHEMA_ENHANCEMENTS.md - Complete documentation
+
+  🚀 How to Use
+
+  # Fetch and store data for any vessel
+  cd src
+  python fetch_and_store.py mv_october 30
+
+  # Or for other vessels
+  python fetch_and_store.py mv_racer 60
+  python fetch_and_store.py mt_aqua 30
+
+  💡 Key Benefits
+
+  1. Automatic Quality Monitoring - Alerts generated instantly for out-of-range values
+  2. Full Traceability - Know who tested what, when, and with which device
+  3. Flexible Data Storage - Handles both string and numeric values
+  4. Performance Optimized - Strategic indexes on frequently queried fields
+  5. Future-Ready - Supports custom limits and time-based ranges
+
+  The enhanced schema is now production-ready and tested with real Labcom data! All 4 vessels (MV October, M.V Racer,
+   MT Aqua, MT Voyager) can now be fetched and stored with comprehensive quality control tracking.

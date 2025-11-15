@@ -1,0 +1,478 @@
+/* Accuport Dashboard - Material Design with Custom Color Palette */
+
+/* ============================================================================
+   COLOR PALETTE & VARIABLES
+   ============================================================================ */
+:root {
+    /* Primary Colors */
+    --primary-color: #9CAFAA;      /* Muted teal - headers, primary buttons */
+    --secondary-color: #D6A99D;    /* Dusty rose - secondary actions, alerts */
+    --background-color: #FBF3D5;   /* Cream - page background */
+    --surface-color: #D6DAC8;      /* Sage - card backgrounds */
+
+    /* Neutral Colors */
+    --white: #FFFFFF;
+    --light-gray: #F5F5F5;
+    --medium-gray: #9E9E9E;
+    --dark-gray: #424242;
+    --text-primary: #212121;
+    --text-secondary: #757575;
+
+    /* Status Colors */
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --danger-color: #F44336;
+    --info-color: #2196F3;
+
+    /* Material Design Elevation Shadows */
+    --shadow-2dp: 0 2px 2px 0 rgba(0,0,0,0.14), 0 3px 1px -2px rgba(0,0,0,0.12), 0 1px 5px 0 rgba(0,0,0,0.20);
+    --shadow-4dp: 0 4px 5px 0 rgba(0,0,0,0.14), 0 1px 10px 0 rgba(0,0,0,0.12), 0 2px 4px -1px rgba(0,0,0,0.20);
+    --shadow-8dp: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.20);
+    --shadow-16dp: 0 16px 24px 2px rgba(0,0,0,0.14), 0 6px 30px 5px rgba(0,0,0,0.12), 0 8px 10px -5px rgba(0,0,0,0.20);
+
+    /* Material Design Border Radius */
+    --radius-small: 4px;
+    --radius-medium: 8px;
+    --radius-large: 16px;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+}
+
+/* ============================================================================
+   GLOBAL STYLES
+   ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+body {
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    margin-bottom: var(--spacing-md);
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 400;
+}
+
+h4 {
+    font-size: 1.5rem;
+    font-weight: 400;
+}
+
+h5 {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+/* ============================================================================
+   NAVBAR - Material Design
+   ============================================================================ */
+.navbar {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #87a09b 100%) !important;
+    box-shadow: var(--shadow-4dp);
+    padding: var(--spacing-md) 0;
+}
+
+.navbar-brand {
+    font-weight: 500;
+    font-size: 1.5rem;
+    letter-spacing: 0.5px;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 400;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-small);
+    transition: background-color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.navbar .badge {
+    background-color: var(--secondary-color);
+    color: var(--white);
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+/* ============================================================================
+   CARDS - Material Design
+   ============================================================================ */
+.card {
+    background-color: var(--white);
+    border: none;
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-2dp);
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    margin-bottom: var(--spacing-lg);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-4dp);
+}
+
+.card-header {
+    background-color: var(--surface-color);
+    border-bottom: none;
+    border-radius: var(--radius-medium) var(--radius-medium) 0 0;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.card-header.bg-warning {
+    background-color: var(--secondary-color) !important;
+    color: var(--white);
+}
+
+.card-header.bg-info {
+    background-color: var(--primary-color) !important;
+    color: var(--white);
+}
+
+.card-body {
+    padding: var(--spacing-lg);
+}
+
+.card-title {
+    font-weight: 500;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Equipment Cards with Elevation */
+.hover-shadow {
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    cursor: pointer;
+    background-color: var(--white);
+}
+
+.hover-shadow:hover {
+    box-shadow: var(--shadow-8dp);
+    transform: translateY(-4px);
+}
+
+/* ============================================================================
+   BUTTONS - Material Design
+   ============================================================================ */
+.btn {
+    border-radius: var(--radius-small);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    border: none;
+    box-shadow: var(--shadow-2dp);
+}
+
+.btn:hover {
+    box-shadow: var(--shadow-4dp);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    box-shadow: var(--shadow-2dp);
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-primary:hover {
+    background-color: #87a09b;
+    color: var(--white);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: var(--white);
+}
+
+.btn-secondary:hover {
+    background-color: #c9998d;
+    color: var(--white);
+}
+
+.btn-outline-primary {
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+/* ============================================================================
+   FORM CONTROLS - Material Design
+   ============================================================================ */
+.form-control, .form-select {
+    border: 1px solid #E0E0E0;
+    border-radius: var(--radius-small);
+    padding: 10px 12px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--white);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(156, 175, 170, 0.2);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.875rem;
+}
+
+.input-group-text {
+    background-color: var(--surface-color);
+    border: 1px solid #E0E0E0;
+    color: var(--text-secondary);
+}
+
+/* ============================================================================
+   TABLES - Material Design
+   ============================================================================ */
+.table {
+    background-color: var(--white);
+    border-radius: var(--radius-medium);
+    overflow: hidden;
+}
+
+.table thead th {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    font-weight: 500;
+    border-bottom: 2px solid #E0E0E0;
+    padding: var(--spacing-md);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(156, 175, 170, 0.08);
+}
+
+.table tbody td {
+    padding: var(--spacing-md);
+    vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(214, 218, 200, 0.05);
+}
+
+/* ============================================================================
+   BADGES - Material Design
+   ============================================================================ */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.3px;
+}
+
+.badge.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--warning-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.badge.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+.badge.bg-info {
+    background-color: var(--info-color) !important;
+}
+
+.badge.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+/* ============================================================================
+   ALERTS - Material Design
+   ============================================================================ */
+.alert {
+    border-radius: var(--radius-medium);
+    border: none;
+    box-shadow: var(--shadow-2dp);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.alert-success {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.alert-warning {
+    background-color: #FFF3E0;
+    color: #E65100;
+}
+
+.alert-danger {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+
+.alert-info {
+    background-color: #E3F2FD;
+    color: #1565C0;
+}
+
+.card.border-warning {
+    border: 2px solid var(--secondary-color) !important;
+}
+
+/* ============================================================================
+   BREADCRUMB - Material Design
+   ============================================================================ */
+.breadcrumb {
+    background-color: transparent;
+    padding: var(--spacing-md) 0;
+    margin-bottom: var(--spacing-md);
+}
+
+.breadcrumb-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.breadcrumb-item a:hover {
+    color: #87a09b;
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--text-secondary);
+}
+
+/* ============================================================================
+   FOOTER
+   ============================================================================ */
+footer {
+    background-color: var(--surface-color);
+    color: var(--text-secondary);
+    padding: var(--spacing-lg) 0;
+    margin-top: auto;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+}
+
+/* ============================================================================
+   LOGIN PAGE - Material Design
+   ============================================================================ */
+.card.shadow {
+    box-shadow: var(--shadow-16dp) !important;
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .card-body {
+        padding: var(--spacing-md);
+    }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+.elevation-2 {
+    box-shadow: var(--shadow-2dp);
+}
+
+.elevation-4 {
+    box-shadow: var(--shadow-4dp);
+}
+
+.elevation-8 {
+    box-shadow: var(--shadow-8dp);
+}
+
+.elevation-16 {
+    box-shadow: var(--shadow-16dp);
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-secondary {
+    background-color: var(--secondary-color) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-secondary {
+    color: var(--secondary-color) !important;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+@media print {
+    .navbar, footer, .btn, .breadcrumb {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        page-break-inside: avoid;
+        box-shadow: none;
+    }
+
+    body {
+        background-color: white;
+    }
+}

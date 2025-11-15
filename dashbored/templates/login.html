@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Accuport Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-water text-primary" style="font-size: 3rem;"></i>
+                        <h2 class="mt-2">Accuport.cloud</h2>
+                        <p class="text-muted">Marine Onboard Chemical Test Solutions</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('login') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text"
+                                       class="form-control"
+                                       id="username"
+                                       name="username"
+                                       placeholder="Enter username"
+                                       required
+                                       autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                <input type="password"
+                                       class="form-control"
+                                       id="password"
+                                       name="password"
+                                       placeholder="Enter password"
+                                       required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mb-3">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Contact your administrator for login credentials
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo credentials info -->
+            <div class="card mt-3 bg-light">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-key"></i> Demo Credentials</h6>
+                    <small>
+                        <strong>Vessel Manager:</strong> vm1 / password123<br>
+                        <strong>Fleet Manager:</strong> fm1 / password123<br>
+                        <strong>Admin:</strong> admin / admin123
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

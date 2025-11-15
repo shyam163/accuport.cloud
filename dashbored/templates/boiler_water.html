@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Boiler Water - {{ vessel.vessel_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Boiler Water</li>
+                </ol>
+            </nav>
+
+            <h2><i class="bi bi-droplet-fill text-primary"></i> Boiler Water Analysis</h2>
+            <p class="text-muted">{{ vessel.vessel_name }} - {{ vessel.vessel_id }}</p>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date"
+                                   value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date"
+                                   value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel"></i> Apply Filter
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('boiler_water') }}'">
+                                <i class="bi bi-x-circle"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Charts -->
+    <div class="row">
+        <div class="col-12">
+            <h4>Auxiliary Boiler 1 (AB1)</h4>
+            {% if boiler1_data %}
+                <div id="boiler1-charts"></div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No data available for Auxiliary Boiler 1 in the selected date range.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4>Auxiliary Boiler 2 (AB2)</h4>
+            {% if boiler2_data %}
+                <div id="boiler2-charts"></div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No data available for Auxiliary Boiler 2 in the selected date range.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Reference Ranges -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-table"></i> Recommended Parameter Ranges</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Range</th>
+                                <th>Recommended Limit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Phosphate</td>
+                                <td>0-100 ppm</td>
+                                <td>20-50 ppm PO4</td>
+                            </tr>
+                            <tr>
+                                <td>P-Alkalinity</td>
+                                <td>25-300 ppm</td>
+                                <td>150-300 ppm CaCO3</td>
+                            </tr>
+                            <tr>
+                                <td>M-Alkalinity</td>
+                                <td>0-500 ppm</td>
+                                <td>700 ppm CaCO3</td>
+                            </tr>
+                            <tr>
+                                <td>Chloride</td>
+                                <td>-</td>
+                                <td>200 ppm max</td>
+                            </tr>
+                            <tr>
+                                <td>pH</td>
+                                <td>-</td>
+                                <td>8.5-9.2</td>
+                            </tr>
+                            <tr>
+                                <td>Hydrazine</td>
+                                <td>0-0.5 mg/L</td>
+                                <td>0-0.5 mg/L</td>
+                            </tr>
+                            <tr>
+                                <td>DEHA</td>
+                                <td>0-0.5 mg/L</td>
+                                <td>0-0.5 mg/L</td>
+                            </tr>
+                            <tr>
+                                <td>Conductivity</td>
+                                <td>0-2250 µS/cm</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Organize data by parameter
+function organizeDataByParameter(measurements) {
+    const byParameter = {};
+
+    measurements.forEach(m => {
+        const paramName = m.parameter_name;
+        if (!byParameter[paramName]) {
+            byParameter[paramName] = {
+                dates: [],
+                values: [],
+                statuses: [],
+                limits: { low: null, high: null }
+            };
+        }
+
+        byParameter[paramName].dates.push(m.measurement_date);
+        byParameter[paramName].values.push(m.value_numeric);
+        byParameter[paramName].statuses.push(m.ideal_status);
+
+        if (m.ideal_low !== null) byParameter[paramName].limits.low = m.ideal_low;
+        if (m.ideal_high !== null) byParameter[paramName].limits.high = m.ideal_high;
+    });
+
+    return byParameter;
+}
+
+// Create time series chart for a parameter
+function createParameterChart(containerId, paramName, data) {
+    const trace = {
+        x: data.dates,
+        y: data.values,
+        mode: 'lines+markers',
+        name: paramName,
+        line: { width: 2 },
+        marker: {
+            size: 6,
+            color: data.statuses.map(status => {
+                if (status === 'OKAY') return 'green';
+                if (status === 'TOO LOW' || status === 'TOO HIGH') return 'red';
+                return 'orange';
+            })
+        }
+    };
+
+    const shapes = [];
+    if (data.limits.low !== null && data.limits.high !== null) {
+        // Add shaded area for ideal range
+        shapes.push({
+            type: 'rect',
+            xref: 'paper',
+            x0: 0,
+            x1: 1,
+            y0: data.limits.low,
+            y1: data.limits.high,
+            fillcolor: 'rgba(0, 255, 0, 0.1)',
+            line: { width: 0 }
+        });
+    }
+
+    const layout = {
+        title: paramName,
+        xaxis: { title: 'Date' },
+        yaxis: { title: 'Value' },
+        shapes: shapes,
+        hovermode: 'closest'
+    };
+
+    const div = document.createElement('div');
+    div.style.marginBottom = '20px';
+    document.getElementById(containerId).appendChild(div);
+
+    Plotly.newPlot(div, [trace], layout, { responsive: true });
+}
+
+// Render charts for boiler 1
+{% if boiler1_data %}
+const boiler1Data = {{ boiler1_data | tojson }};
+const boiler1ByParam = organizeDataByParameter(boiler1Data);
+
+Object.keys(boiler1ByParam).forEach(paramName => {
+    createParameterChart('boiler1-charts', paramName, boiler1ByParam[paramName]);
+});
+{% endif %}
+
+// Render charts for boiler 2
+{% if boiler2_data %}
+const boiler2Data = {{ boiler2_data | tojson }};
+const boiler2ByParam = organizeDataByParameter(boiler2Data);
+
+Object.keys(boiler2ByParam).forEach(paramName => {
+    createParameterChart('boiler2-charts', paramName, boiler2ByParam[paramName]);
+});
+{% endif %}
+</script>
+{% endblock %}

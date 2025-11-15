@@ -1,0 +1,68 @@
+vessel_name,vessel_id,account_id,account_name,measurement_id,measurement_date,parameter_id,parameter_name,value,unit,ideal_low,ideal_high,ideal_status,comment,operator_name,device_serial
+MV October,mv_october,67,SD6 ME Unit 6 Scavenge Drain,159,2025-11-13 13:14:34,251,Iron-in-Oil [liq],35,mg/l (Fe²⁺/Fe³⁺),50,450,TOO LOW,,,Manual
+MV October,mv_october,67,SD6 ME Unit 6 Scavenge Drain,160,2025-11-13 13:14:34,210,BaseNumber,30,mg KOH/l,5,100,OKAY,,,Manual
+MV October,mv_october,66,SD5 ME Unit 5 Scavenge Drain,157,2025-11-13 13:13:29,251,Iron-in-Oil [liq],30,mg/l (Fe²⁺/Fe³⁺),50,450,TOO LOW,,,Manual
+MV October,mv_october,66,SD5 ME Unit 5 Scavenge Drain,158,2025-11-13 13:13:29,210,BaseNumber,30,mg KOH/l,5,100,OKAY,,,Manual
+MV October,mv_october,64,SD4 ME Unit 4 Scavenge Drain,155,2025-11-13 13:12:32,251,Iron-in-Oil [liq],200,mg/l (Fe²⁺/Fe³⁺),50,450,OKAY,,,Manual
+MV October,mv_october,64,SD4 ME Unit 4 Scavenge Drain,156,2025-11-13 13:12:32,210,BaseNumber,25,mg KOH/l,5,100,OKAY,,,Manual
+MV October,mv_october,63,SD3 ME Unit 3 Scavenge Drain,153,2025-11-13 13:11:01,251,Iron-in-Oil [liq],300,mg/l (Fe²⁺/Fe³⁺),50,450,OKAY,,,Manual
+MV October,mv_october,63,SD3 ME Unit 3 Scavenge Drain,154,2025-11-13 13:11:01,210,BaseNumber,20,mg KOH/l,5,100,OKAY,,,Manual
+MV October,mv_october,62,SD2 ME Unit 2 Scavenge Drain,151,2025-11-13 13:09:29,251,Iron-in-Oil [liq],20,mg/l (Fe²⁺/Fe³⁺),50,450,TOO LOW,,,Manual
+MV October,mv_october,62,SD2 ME Unit 2 Scavenge Drain,152,2025-11-13 13:09:29,210,BaseNumber,25,mg KOH/l,5,100,OKAY,,,Manual
+MV October,mv_october,61,SD1 ME Unit 1 Scavenge Drain,149,2025-11-13 13:05:34,251,Iron-in-Oil [liq],200,mg/l (Fe²⁺/Fe³⁺),50,450,OKAY,,,Manual
+MV October,mv_october,61,SD1 ME Unit 1 Scavenge Drain,150,2025-11-13 13:05:34,210,BaseNumber,35,mg KOH/l,5,100,OKAY,,,Manual
+MV October,mv_october,60,GW Treated Sewage,145,2025-11-13 11:10:57,50,pH-Universal (liq),8,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,60,GW Treated Sewage,146,2025-11-13 11:10:57,19,COD (HR),7500,mg/l (O₂),0,15000,OKAY,,,Manual
+MV October,mv_october,60,GW Treated Sewage,147,2025-11-13 11:10:57,13,Chlorine free,1,mg/l (fCl₂),0,8,OKAY,,,Manual
+MV October,mv_october,60,GW Treated Sewage,148,2025-11-13 11:10:57,82,Suspended Solids,200,mg/l (TSS),0,750,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,135,2025-11-13 11:04:57,49,pH-Value (MR),7,(pH),6.4,8.4,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,136,2025-11-13 11:04:57,5,Alkalinity M,110,mg/l (CaCO₃),5,200,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,137,2025-11-13 11:04:57,118,Turbidity-NTU,300,NTU (Turb),0.5,1000,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,138,2025-11-13 11:04:57,31,Hardn.- Total (HR),280,mg/l (CaCO₃),20,500,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,139,2025-11-13 11:04:57,15,Chlorine total,4,mg/l (tCl₂),0,8,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,140,2025-11-13 11:04:57,100,Sulphate (tab),40,mg/l (SO₄²⁻),5,100,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,141,2025-11-13 11:04:57,23,Iron (LR),0.2,mg/l (Fe),0,1,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,142,2025-11-13 11:04:57,94,Nickel (HR liq),7,mg/l (Ni),0,10,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,143,2025-11-13 11:04:57,67,Zinc,0.4,mg/l (Zn),0,1,OKAY,,,Manual
+MV October,mv_october,58,PW1 Potable Water Galley,144,2025-11-13 11:04:57,70,Copper total,3,mg/l (tCu),0,5,OKAY,,,Manual
+MV October,mv_october,57,ME Main Engine,132,2025-11-13 11:03:37,50,pH-Universal (liq),9,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,57,ME Main Engine,133,2025-11-13 11:03:37,170,Chloride (Liq),60,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,57,ME Main Engine,134,2025-11-13 11:03:37,96,Nitrite (HR liq),1500,mg/l (NaNO₂),0,3000,OKAY,,,Manual
+MV October,mv_october,56,AE3 Aux Engine 3,129,2025-11-13 11:02:29,50,pH-Universal (liq),9,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,56,AE3 Aux Engine 3,130,2025-11-13 11:02:29,170,Chloride (Liq),70,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,56,AE3 Aux Engine 3,131,2025-11-13 11:02:29,96,Nitrite (HR liq),1200,mg/l (NaNO₂),0,3000,OKAY,,,Manual
+MV October,mv_october,55,AE2 Aux Engine 2,126,2025-11-13 11:01:12,50,pH-Universal (liq),8,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,55,AE2 Aux Engine 2,127,2025-11-13 11:01:12,170,Chloride (Liq),70,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,55,AE2 Aux Engine 2,128,2025-11-13 11:01:12,96,Nitrite (HR liq),2000,mg/l (NaNO₂),0,3000,OKAY,,,Manual
+MV October,mv_october,54,AE1 Aux Engine 1,123,2025-11-13 10:59:02,50,pH-Universal (liq),9,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,54,AE1 Aux Engine 1,124,2025-11-13 10:59:02,170,Chloride (Liq),60,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,54,AE1 Aux Engine 1,125,2025-11-13 10:59:02,96,Nitrite (HR liq),1500,mg/l (NaNO₂),0,3000,OKAY,,,Manual
+MV October,mv_october,53,HW Hot Well,121,2025-11-13 10:57:57,50,pH-Universal (liq),9,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,53,HW Hot Well,122,2025-11-13 10:57:57,170,Chloride (Liq),70,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,52,CB Composite Boiler,120,2025-11-13 10:56:39,125,Conductivity (el.),5800,µS/cm (EC),1,20000,OKAY,,,Manual
+MV October,mv_october,52,CB Composite Boiler,112,2025-11-13 10:51:26,54,Phosphate (HR tab). ortho,90,mg/l (PO₄³⁻),0,80,TOO HIGH,,,Manual
+MV October,mv_october,52,CB Composite Boiler,113,2025-11-13 10:51:26,6,Alkalinity P,10,mg/l (CaCO₃),25,300,TOO LOW,,,Manual
+MV October,mv_october,52,CB Composite Boiler,114,2025-11-13 10:51:26,114,Alkalinity M (HR tab),600,mg/l (CaCO₃),0,500,TOO HIGH,,,Manual
+MV October,mv_october,52,CB Composite Boiler,115,2025-11-13 10:51:26,170,Chloride (Liq),150,mg/l (Cl⁻),0,100,TOO HIGH,,,Manual
+MV October,mv_october,52,CB Composite Boiler,116,2025-11-13 10:51:26,50,pH-Universal (liq),10,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,52,CB Composite Boiler,117,2025-11-13 10:51:26,32,Hydrazine,200,µg/l (N₂H₄),0,600,OKAY,,,Manual
+MV October,mv_october,52,CB Composite Boiler,118,2025-11-13 10:51:26,22,DEHA,780,µg/l (DEHA),20,1000,OKAY,,,Manual
+MV October,mv_october,52,CB Composite Boiler,119,2025-11-13 10:51:26,31,Hardn.- Total (HR),360,mg/l (CaCO₃),20,500,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,102,2025-11-13 10:43:34,54,Phosphate (HR tab). ortho,65,mg/l (PO₄³⁻),0,80,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,103,2025-11-13 10:43:34,6,Alkalinity P,187,mg/l (CaCO₃),25,300,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,105,2025-11-13 10:43:34,114,Alkalinity M (HR tab),400,mg/l (CaCO₃),0,500,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,106,2025-11-13 10:43:34,170,Chloride (Liq),20,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,107,2025-11-13 10:43:34,50,pH-Universal (liq),10,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,108,2025-11-13 10:43:34,32,Hydrazine,20,µg/l (N₂H₄),0,600,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,109,2025-11-13 10:43:34,22,DEHA,320,µg/l (DEHA),20,1000,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,110,2025-11-13 10:43:34,125,Conductivity (el.),500,µS/cm (EC),1,20000,OKAY,,,Manual
+MV October,mv_october,51,AB2 Aux Boiler 2,111,2025-11-13 10:43:34,199,PL Total Hardness,250,mg/l (CaCO₃),0,500,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,93,2025-11-13 10:37:28,54,Phosphate (HR tab). ortho,50,mg/l (PO₄³⁻),0,80,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,94,2025-11-13 10:37:28,6,Alkalinity P,150,mg/l (CaCO₃),25,300,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,95,2025-11-13 10:37:28,114,Alkalinity M (HR tab),200,mg/l (CaCO₃),0,500,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,96,2025-11-13 10:37:28,170,Chloride (Liq),50,mg/l (Cl⁻),0,100,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,97,2025-11-13 10:37:28,50,pH-Universal (liq),9,(pH Univ),4,11,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,98,2025-11-13 10:37:28,32,Hydrazine,200,µg/l (N₂H₄),0,600,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,99,2025-11-13 10:37:28,22,DEHA,500,µg/l (DEHA),20,1000,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,100,2025-11-13 10:37:28,125,Conductivity (el.),1000,µS/cm (EC),1,20000,OKAY,,,Manual
+MV October,mv_october,50,AB1 Aux Boiler 1,101,2025-11-13 10:37:28,31,Hardn.- Total (HR),260,mg/l (CaCO₃),20,500,OKAY,,,Manual

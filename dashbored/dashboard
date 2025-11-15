@@ -1,0 +1,13 @@
+
+
+
+Access to Accuport cloud portal is mainly intended for vessel managers and fleet managers. Normally a vessel manager has 3-5 ships under his managemen and a fleet managert has 3-5 vessel managers under him.
+
+A log in id and password will be provided to the managers.
+
+The manager can log in access data of the vessels under his management only (vessel managers can only see the 2-3 vesels under him , but fleet managers can see all the vessels that under the vessel managers that are under him).
+
+eg vessel_manager_1 hass 2 ships and  vessel_manager_2 has 3 ships and vessel_manager_3 has 4 ships ; and fleet_manager_1 has     vessel_manager_1 and  vessel_manager_2 under him then
+   vessel_manager_1 should onlly see his 2 ships
+   vessel_manager_2 should onlly see his 2 ships
+   fleet_manager_1  should onlly see 5 ships that under his subordinates
