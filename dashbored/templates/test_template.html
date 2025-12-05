@@ -1,0 +1,7 @@
+<!-- TEST VERSION - show all users without filter -->
+<select class="form-select" name="vessel_manager_id" required>
+    <option value="">-- Select Vessel Manager --</option>
+    {% for usr in all_users %}
+    <option value="{{ usr.id }}">{{ usr.full_name }} ({{ usr.role }})</option>
+    {% endfor %}
+</select>

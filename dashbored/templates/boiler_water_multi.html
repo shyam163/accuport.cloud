@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Boiler Water - {{ vessel.vessel_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Breadcrumb and Title -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Boiler Water</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-droplet-fill text-primary"></i> Boiler Water Analysis</h2>
+            <p class="text-muted">{{ vessel.vessel_name }} - {{ vessel.vessel_id }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Sidebar -->
+        <div class="col-md-3 col-lg-2 mb-4">
+            <!-- Boiler Selection -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-check2-square"></i> Select Boilers</h6>
+                    <div class="form-check">
+                        <input class="form-check-input boiler-checkbox" type="checkbox" value="Aux1" id="aux1-check" checked>
+                        <label class="form-check-label" for="aux1-check">
+                            <i class="bi bi-droplet-fill text-primary"></i> Aux 1
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input boiler-checkbox" type="checkbox" value="Aux2" id="aux2-check" checked>
+                        <label class="form-check-label" for="aux2-check">
+                            <i class="bi bi-droplet-fill text-success"></i> Aux 2
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input boiler-checkbox" type="checkbox" value="EGE" id="ege-check" checked>
+                        <label class="form-check-label" for="ege-check">
+                            <i class="bi bi-droplet-fill text-danger"></i> EGE
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input boiler-checkbox" type="checkbox" value="Hotwell" id="hotwell-check" checked>
+                        <label class="form-check-label" for="hotwell-check">
+                            <i class="bi bi-droplet-fill text-warning"></i> Hotwell
+                        </label>
+                    </div>
+                    <hr>
+                    <button class="btn btn-sm btn-outline-primary w-100 mb-2" id="select-all">
+                        <i class="bi bi-check-all"></i> Select All
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary w-100" id="deselect-all">
+                        <i class="bi bi-x-square"></i> Deselect All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-calendar-range"></i> Date Range</h6>
+                    <form method="GET" id="filter-form">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label"><strong>Start Date</strong></label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label"><strong>End Date</strong></label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-funnel"></i> Apply Filter
+                        </button>
+                        <button type="button" class="btn btn-secondary w-100" onclick="window.location.href='{{ url_for('boiler_water_multi') }}'">
+                            <i class="bi bi-x-circle"></i> Reset
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-6 col-lg-7">
+            <div class="card">
+                <div class="card-body">
+                    {% if boiler_data %}
+                        <div id="boiler-charts"></div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> No boiler water data available for the selected date range.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="col-md-3 col-lg-3 mb-4">
+            <!-- Vessel Selector (hidden for vessel users) -->
+            {% if not current_user.is_vessel_user() %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-ship"></i> Select Vessel</h6>
+                    <select class="form-select" id="vessel-selector">
+                        {% for v in vessels %}
+                        <option value="{{ v.id }}" {% if v.id == vessel.id %}selected{% endif %}>
+                            {{ v.vessel_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-muted small mt-2 mb-0">{{ vessel.vessel_id }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Vessel Equipment Specifications -->
+            {% if vessel_specs %}
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: #6c757d; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-info-circle-fill"></i> Equipment Specifications</h6>
+                </div>
+                <div class="card-body">
+                    {% for category, fields in vessel_specs.items() %}
+                        {% if category != 'vessel_info' %}
+                            {% for field_name, field_value in fields.items() %}
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">{{ field_name }}</small>
+                                    <strong class="small">{{ field_value }}</strong>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Hotwell Specific Chemicals -->
+                    {% if vessel_specs.boiler.get('Hotwell DEHA') or vessel_specs.boiler.get('Hotwell Hydrazine') %}
+                        <hr class="my-3">
+                        <h6 class="text-warning mb-2"><i class="bi bi-droplet-fill"></i> Hotwell Specific</h6>
+                        {% if vessel_specs.boiler.get('Hotwell DEHA') %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">Hotwell DEHA</small>
+                            <strong class="small">{{ vessel_specs.boiler['Hotwell DEHA'] }}</strong>
+                        </div>
+                        {% endif %}
+                        {% if vessel_specs.boiler.get('Hotwell Hydrazine') %}
+                        <div class="mb-2">
+                            <small class="text-muted d-block">Hotwell Hydrazine</small>
+                            <strong class="small">{{ vessel_specs.boiler['Hotwell Hydrazine'] }}</strong>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Boiler Alerts -->
+            <div class="card border-danger">
+                <div class="card-header" style="background-color: #dc3545; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Boiler Alerts</h6>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                        <div class="list-group list-group-flush">
+                            {% for alert in alerts[:5] %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="small">
+                                        <strong>{{ alert.sampling_point_name or 'N/A' }}</strong><br>
+                                        <span class="text-muted">{{ alert.parameter_name }}</span><br>
+                                        <span class="badge bg-danger">{{ alert.measured_value }}</span>
+                                        <small class="text-muted">{{ alert.alert_date[:10] }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="mb-0" style="color: #6e6e73;">
+                            <i class="bi bi-check-circle-fill" style="color: #0071e3;"></i> No active alerts
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Plotly.js for charts -->
+<script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}"></script>
+<script>
+// Vessel selector - reload page when vessel changes
+const vesselSelector = document.getElementById('vessel-selector');
+if (vesselSelector) {
+    vesselSelector.addEventListener('change', function() {
+        const newVesselId = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('vessel_id', newVesselId);
+        window.location.href = currentUrl.toString();
+    });
+}
+
+// Color palette for boilers
+const BOILER_COLORS = {
+    'Aux1': '#0d6efd',  // Blue
+    'Aux2': '#198754',  // Green
+    'EGE': '#dc3545',   // Red
+    'Hotwell': '#ffc107' // Yellow
+};
+
+// Boiler selection management
+const boilerCheckboxes = document.querySelectorAll('.boiler-checkbox');
+const selectAllBtn = document.getElementById('select-all');
+const deselectAllBtn = document.getElementById('deselect-all');
+
+selectAllBtn.addEventListener('click', () => {
+    boilerCheckboxes.forEach(cb => cb.checked = true);
+    updateCharts();
+});
+
+deselectAllBtn.addEventListener('click', () => {
+    boilerCheckboxes.forEach(cb => cb.checked = false);
+    updateCharts();
+});
+
+boilerCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateCharts);
+});
+
+function getSelectedBoilers() {
+    return Array.from(boilerCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+}
+
+// All data from backend
+const allBoilerData = {{ boiler_data | tojson }};
+
+function updateCharts() {
+    const selectedBoilers = getSelectedBoilers();
+    const chartsContainer = document.getElementById('boiler-charts');
+    chartsContainer.innerHTML = '';
+
+    // Filter data by selected boilers
+    const filteredData = allBoilerData.filter(m => selectedBoilers.includes(m.boiler_id));
+
+    // Organize data by parameter
+    const dataByParam = {};
+    filteredData.forEach(m => {
+        if (!dataByParam[m.parameter_name]) {
+            dataByParam[m.parameter_name] = { unit: m.unit || '', boilers: {} };
+        }
+        if (!dataByParam[m.parameter_name].boilers[m.boiler_id]) {
+            dataByParam[m.parameter_name].boilers[m.boiler_id] = [];
+        }
+        dataByParam[m.parameter_name].boilers[m.boiler_id].push(m);
+    });
+
+    // Create a chart for each parameter
+    Object.keys(dataByParam).sort().forEach(paramName => {
+        const div = document.createElement('div');
+        div.style.marginBottom = '30px';
+        chartsContainer.appendChild(div);
+
+        const paramInfo = dataByParam[paramName];
+        const traces = [];
+        const shapes = [];
+        let allDates = [];
+
+        selectedBoilers.forEach(boilerId => {
+            if (paramInfo.boilers[boilerId]) {
+                const data = paramInfo.boilers[boilerId];
+                traces.push({
+                    x: data.map(m => m.measurement_date),
+                    y: data.map(m => parseFloat(m.value)),
+                    mode: 'lines+markers',
+                    name: boilerId,
+                    line: { color: BOILER_COLORS[boilerId], width: 2 },
+                    marker: { size: 6 }
+                });
+                allDates = allDates.concat(data.map(m => new Date(m.measurement_date)));
+
+                // Add ideal range shading if available
+                if (data[0].ideal_low && data[0].ideal_high) {
+                    shapes.push({
+                        type: 'rect',
+                        xref: 'paper',
+                        x0: 0,
+                        x1: 1,
+                        y0: parseFloat(data[0].ideal_low),
+                        y1: parseFloat(data[0].ideal_high),
+                        fillcolor: 'rgba(0, 255, 0, 0.1)',
+                        line: { width: 0 }
+                    });
+                }
+            }
+        });
+
+        // Calculate date range
+        let minDate = new Date(Math.min(...allDates));
+        let maxDate = new Date(Math.max(...allDates));
+        if (minDate.toDateString() === maxDate.toDateString()) {
+            minDate = new Date(minDate.getTime() - 86400000);
+            maxDate = new Date(maxDate.getTime() + 86400000);
+        }
+
+        // Format last test date
+        let lastTestDate = new Date(Math.max(...allDates.filter(d => !isNaN(d))));
+        let lastTestDateStr = lastTestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const layout = {
+            title: `${paramName}, Last Test Date ${lastTestDateStr}`,
+            xaxis: {
+                title: 'Date',
+                tickformat: '%b %d, %Y',
+                dtick: 86400000,
+                range: [minDate, maxDate]
+            },
+            yaxis: { title: `${paramName} (${paramInfo.unit})` },
+            shapes: shapes,
+            hovermode: 'closest'
+        };
+
+        Plotly.newPlot(div, traces, layout, { responsive: true });
+    });
+}
+
+// Initialize on page load
+{% if boiler_data %}
+updateCharts();
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Accuport{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-shield-lock"></i> Admin Dashboard</h2>
+            <p class="text-muted">Manage users, vessels, and system configuration</p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+                <i class="bi bi-people"></i> Users
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="vessels-tab" data-bs-toggle="tab" data-bs-target="#vessels" type="button" role="tab">
+                <i class="bi bi-ship"></i> Vessels
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="assignments-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">
+                <i class="bi bi-diagram-3"></i> Assignments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab">
+                <i class="bi bi-clock-history"></i> Audit Log
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="adminTabContent">
+        
+        <!-- USERS TAB -->
+        <div class="tab-pane fade show active" id="users" role="tabpanel">
+            <div class="row">
+                <!-- Create User Form -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-person-plus"></i> Create New User</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_create_user') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-control" name="username" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" name="password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" name="full_name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Role</label>
+                                    <select class="form-select" name="role" required>
+                                        <option value="vessel_manager">Vessel Manager</option>
+                                        <option value="fleet_manager">Fleet Manager</option>
+                                        <option value="admin">Administrator</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-circle"></i> Create User
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User List -->
+                <div class="col-md-8 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-people"></i> All Users</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Full Name</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for usr in all_users %}
+                                        <tr>
+                                            <td>{{ usr.username }}</td>
+                                            <td>{{ usr.full_name }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if usr.role == 'admin' %}bg-danger
+                                                    {% elif usr.role == 'fleet_manager' %}bg-warning
+                                                    {% else %}bg-info{% endif %}">
+                                                    {{ usr.role.replace('_', ' ').title() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if usr.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <form action="{{ url_for('api_toggle_user_status') }}" method="POST" style="display:inline;">
+                                                    <input type="hidden" name="user_id" value="{{ usr.id }}">
+                                                    <input type="hidden" name="is_active" value="{% if usr.is_active %}0{% else %}1{% endif %}">
+                                                    <button type="submit" class="btn btn-sm 
+                                                        {% if usr.is_active %}btn-warning{% else %}btn-success{% endif %}"
+                                                        {% if usr.id == user.id %}disabled title="Cannot modify your own account"{% endif %}>
+                                                        {% if usr.is_active %}
+                                                        <i class="bi bi-pause-circle"></i> Deactivate
+                                                        {% else %}
+                                                        <i class="bi bi-play-circle"></i> Activate
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VESSELS TAB -->
+        <div class="tab-pane fade" id="vessels" role="tabpanel">
+            <div class="row">
+                <!-- Create Vessel Form -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-ship"></i> Create New Vessel</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_create_vessel') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Vessel ID Code</label>
+                                    <input type="text" class="form-control" name="vessel_id_code" placeholder="e.g., MV001" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Vessel Name</label>
+                                    <input type="text" class="form-control" name="vessel_name" placeholder="e.g., MV Accu Queen" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Contact Email</label>
+                                    <input type="email" class="form-control" name="email">
+                                </div>
+                                <div class="alert alert-info small">
+                                    <i class="bi bi-info-circle"></i> An authentication token will be automatically generated for this vessel.
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-circle"></i> Create Vessel
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vessel List -->
+                <div class="col-md-8 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-ship"></i> All Vessels</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vessel ID</th>
+                                            <th>Vessel Name</th>
+                                            <th>Email</th>
+                                            <th>Auth Token</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for vessel in all_vessels %}
+                                        <tr>
+                                            <td><strong>{{ vessel.vessel_id }}</strong></td>
+                                            <td>{{ vessel.vessel_name }}</td>
+                                            <td>{{ vessel.email or 'N/A' }}</td>
+                                            <td>
+                                                <code class="small">{{ vessel.auth_token[:20] }}...</code>
+                                                <button class="btn btn-sm btn-outline-secondary" 
+                                                        onclick="copyToClipboard('{{ vessel.auth_token }}')">
+                                                    <i class="bi bi-clipboard"></i>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <a href="{{ url_for('admin_edit_vessel_details', vessel_id=vessel.id) }}"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-gear"></i> Edit Specs
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ASSIGNMENTS TAB -->
+        <div class="tab-pane fade" id="assignments" role="tabpanel">
+            <div class="row">
+                <!-- Assign Vessel to User -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Assign Vessel to User</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_assign_vessel') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Select User</label>
+                                    <select class="form-select" name="user_id" required>
+                                        <option value="">-- Select User --</option>
+                                        {% for usr in all_users %}
+                                        {% if usr.is_active %}
+                                        <option value="{{ usr.id }}">{{ usr.full_name }} ({{ usr.role.replace('_', ' ').title() }})</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Select Vessel</label>
+                                    <select class="form-select" name="vessel_id" required>
+                                        <option value="">-- Select Vessel --</option>
+                                        {% for vessel in all_vessels %}
+                                        <option value="{{ vessel.id }}">{{ vessel.vessel_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-circle"></i> Assign Vessel
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assign Vessel Manager to Fleet Manager -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Assign VM to Fleet Manager</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_assign_hierarchy') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Fleet Manager</label>
+                                    <select class="form-select" name="fleet_manager_id" required>
+                                        <option value="">-- Select Fleet Manager --</option>
+                                        {% for usr in all_users %}
+                                        {% if usr.role == 'fleet_manager' and usr.is_active %}
+                                        <option value="{{ usr.id }}">{{ usr.full_name }}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Vessel Manager</label>
+                                    <select class="form-select" name="vessel_manager_id" required>
+                                        <option value="">-- Select Vessel Manager --</option>
+                                        {% for vm in unassigned_managers %}
+                                        <option value="{{ vm.id }}">{{ vm.full_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="bi bi-check-circle"></i> Assign Hierarchy
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDIT LOG TAB -->
+        <div class="tab-pane fade" id="audit" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Admin User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in audit_log %}
+                                <tr>
+                                    <td class="small">{{ log.created_at }}</td>
+                                    <td>{{ log.admin_username }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ log.action_type.replace('_', ' ') }}</span>
+                                    </td>
+                                    <td class="small">{{ log.action_details or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Auth token copied to clipboard!');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+</script>
+
+{% endblock %}

@@ -48,7 +48,7 @@ def get_user_vessels(user_id, role):
     with get_users_connection() as conn:
         cursor = conn.cursor()
 
-        if role == 'vessel_manager':
+        if role == 'vessel_manager' or role == 'vessel_user':
             # Get directly assigned vessels
             cursor.execute('''
                 SELECT vessel_id

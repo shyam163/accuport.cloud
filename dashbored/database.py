@@ -1,6 +1,6 @@
 """
 Database connection management for Accuport Dashboard
-- accubase.sqlite: READ-ONLY (vessel data)
+- accubase.sqlite: READ-ONLY (vessel data) / READ-WRITE (admin operations)
 - users.sqlite: READ-WRITE (user management)
 """
 import sqlite3
@@ -18,6 +18,20 @@ def get_accubase_connection():
     """
     conn = sqlite3.connect(f'file:{ACCUBASE_DB}?mode=ro', uri=True)
     conn.row_factory = sqlite3.Row  # Enable column access by name
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+@contextmanager
+def get_accubase_write_connection():
+    """
+    Get READ-WRITE connection to accubase.sqlite
+    This is used ONLY for admin operations (creating vessels)
+    Regular queries should use get_accubase_connection() which is read-only
+    """
+    conn = sqlite3.connect(ACCUBASE_DB)
+    conn.row_factory = sqlite3.Row
     try:
         yield conn
     finally:

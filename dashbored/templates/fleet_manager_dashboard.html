@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Fleet Manager Dashboard - Accuport{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-diagram-3"></i> Fleet Manager Dashboard</h2>
+            <p class="text-muted">Manage vessel managers and vessel assignments</p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" id="fleetTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="vm-tab" data-bs-toggle="tab" data-bs-target="#vesselmanagers" type="button" role="tab">
+                <i class="bi bi-people"></i> Vessel Managers
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="assign-tab" data-bs-toggle="tab" data-bs-target="#assignments" type="button" role="tab">
+                <i class="bi bi-link-45deg"></i> Vessel Assignments
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="fleetTabContent">
+        
+        <!-- VESSEL MANAGERS TAB -->
+        <div class="tab-pane fade show active" id="vesselmanagers" role="tabpanel">
+            <div class="row">
+                <!-- Create Vessel Manager Form (Admin only) -->
+                {% if user.is_admin() %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-person-plus"></i> Create Vessel Manager</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_create_user') }}" method="POST">
+                                <input type="hidden" name="role" value="vessel_manager">
+                                <div class="mb-3">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-control" name="username" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" class="form-control" name="password" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" name="full_name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-circle"></i> Create Vessel Manager
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Vessel Manager List -->
+                <div class="{% if user.is_admin() %}col-md-8{% else %}col-md-12{% endif %} mb-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-people"></i> 
+                                {% if user.is_admin() %}All Vessel Managers{% else %}My Vessel Managers{% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Full Name</th>
+                                            <th>Email</th>
+                                            <th>Status</th>
+                                            <th>Assigned Vessels</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for vm in vessel_managers %}
+                                        <tr>
+                                            <td>{{ vm.username }}</td>
+                                            <td>{{ vm.full_name }}</td>
+                                            <td>{{ vm.email or 'N/A' }}</td>
+                                            <td>
+                                                {% if vm.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="showVesselAssignments({{ vm.id }}, '{{ vm.full_name }}')">
+                                                    <i class="bi bi-eye"></i> View Vessels
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not vessel_managers %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                No vessel managers found.
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VESSEL ASSIGNMENTS TAB -->
+        <div class="tab-pane fade" id="assignments" role="tabpanel">
+            <div class="row">
+                <!-- Assign Vessel to Vessel Manager -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Assign Vessel to Vessel Manager</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_assign_vessel') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Vessel Manager</label>
+                                    <select class="form-select" name="user_id" required>
+                                        <option value="">-- Select Vessel Manager --</option>
+                                        {% for vm in vessel_managers %}
+                                        {% if vm.is_active %}
+                                        <option value="{{ vm.id }}">{{ vm.full_name }}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Select Vessel</label>
+                                    <select class="form-select" name="vessel_id" required>
+                                        <option value="">-- Select Vessel --</option>
+                                        {% for vessel in all_vessels %}
+                                        <option value="{{ vessel.id }}">{{ vessel.vessel_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-circle"></i> Assign Vessel
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unassign Vessel from Vessel Manager -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="bi bi-x-circle"></i> Remove Vessel Assignment</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('api_unassign_vessel') }}" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label">Select Vessel Manager</label>
+                                    <select class="form-select" name="user_id" id="unassign-user-select" required onchange="loadUserVessels(this.value)">
+                                        <option value="">-- Select Vessel Manager --</option>
+                                        {% for vm in vessel_managers %}
+                                        {% if vm.is_active %}
+                                        <option value="{{ vm.id }}">{{ vm.full_name }}</option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Select Vessel to Remove</label>
+                                    <select class="form-select" name="vessel_id" id="user-vessels-select" required>
+                                        <option value="">-- Select a vessel manager first --</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-x-circle"></i> Remove Assignment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vessels Overview -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="bi bi-ship"></i> Fleet Vessels</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vessel ID</th>
+                                            <th>Vessel Name</th>
+                                            <th>Email</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for vessel in all_vessels %}
+                                        <tr>
+                                            <td><strong>{{ vessel.vessel_id }}</strong></td>
+                                            <td>{{ vessel.vessel_name }}</td>
+                                            <td>{{ vessel.email or 'N/A' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal for showing vessel assignments -->
+<div class="modal fade" id="vesselsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="vesselsModalLabel">Assigned Vessels</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="vesselsModalBody">
+                Loading...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showVesselAssignments(userId, userName) {
+    document.getElementById('vesselsModalLabel').textContent = 'Vessels assigned to ' + userName;
+    document.getElementById('vesselsModalBody').innerHTML = 'Loading...';
+    
+    fetch('/api/admin/vessel-assignments/' + userId)
+        .then(response => response.json())
+        .then(data => {
+            let html = '';
+            if (data.length === 0) {
+                html = '<p class="text-muted">No vessels assigned yet.</p>';
+            } else {
+                html = '<ul class="list-group">';
+                data.forEach(vessel => {
+                    html += '<li class="list-group-item">' +
+                           '<strong>' + vessel.vessel_name + '</strong> (' + vessel.vessel_id + ')' +
+                           '</li>';
+                });
+                html += '</ul>';
+            }
+            document.getElementById('vesselsModalBody').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('vesselsModalBody').innerHTML = 
+                '<div class="alert alert-danger">Error loading vessels</div>';
+        });
+    
+    new bootstrap.Modal(document.getElementById('vesselsModal')).show();
+}
+
+function loadUserVessels(userId) {
+    const select = document.getElementById('user-vessels-select');
+    select.innerHTML = '<option value="">Loading...</option>';
+    
+    if (!userId) {
+        select.innerHTML = '<option value="">-- Select a vessel manager first --</option>';
+        return;
+    }
+    
+    fetch('/api/admin/vessel-assignments/' + userId)
+        .then(response => response.json())
+        .then(data => {
+            let html = '<option value="">-- Select Vessel --</option>';
+            data.forEach(vessel => {
+                html += '<option value="' + vessel.id + '">' + vessel.vessel_name + '</option>';
+            });
+            select.innerHTML = html;
+        })
+        .catch(error => {
+            select.innerHTML = '<option value="">Error loading vessels</option>';
+        });
+}
+</script>
+
+{% endblock %}

@@ -4,7 +4,8 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="row">
+    <!-- Breadcrumb and Title - Full Width -->
+    <div class="row mb-3">
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
@@ -12,33 +13,38 @@
                     <li class="breadcrumb-item active">Boiler Water</li>
                 </ol>
             </nav>
-
             <h2><i class="bi bi-droplet-fill text-primary"></i> Boiler Water Analysis</h2>
             <p class="text-muted">{{ vessel.vessel_name }} - {{ vessel.vessel_id }}</p>
         </div>
     </div>
 
-    <!-- Date Range Filter -->
+    <!-- Date Range Filter - Full Width (100%) -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Date Range Filter</h5>
+                </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label for="start_date" class="form-label">Start Date</label>
-                            <input type="date" class="form-control" id="start_date" name="start_date"
+                        <div class="col-lg-3 col-md-4">
+                            <label for="start_date" class="form-label"><strong>Start Date</strong></label>
+                            <input type="date" class="form-control form-control-lg" id="start_date" name="start_date"
                                    value="{{ start_date }}">
                         </div>
-                        <div class="col-md-4">
-                            <label for="end_date" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="end_date" name="end_date"
+                        <div class="col-lg-3 col-md-4">
+                            <label for="end_date" class="form-label"><strong>End Date</strong></label>
+                            <input type="date" class="form-control form-control-lg" id="end_date" name="end_date"
                                    value="{{ end_date }}">
                         </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary">
+                        <div class="col-lg-3 col-md-2">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
                                 <i class="bi bi-funnel"></i> Apply Filter
                             </button>
-                            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('boiler_water') }}'">
+                        </div>
+                        <div class="col-lg-3 col-md-2">
+                            <button type="button" class="btn btn-outline-secondary btn-lg w-100"
+                                    onclick="window.location.href='{{ url_for('boiler_water') }}'">
                                 <i class="bi bi-x-circle"></i> Reset
                             </button>
                         </div>
@@ -48,92 +54,175 @@
         </div>
     </div>
 
-    <!-- Parameter Charts -->
+    <!-- Sidebar and Main Content Row -->
     <div class="row">
-        <div class="col-12">
-            <h4>Auxiliary Boiler 1 (AB1)</h4>
-            {% if boiler1_data %}
-                <div id="boiler1-charts"></div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> No data available for Auxiliary Boiler 1 in the selected date range.
+        <!-- Left Sidebar - Boiler Selector -->
+        <div class="col-lg-2 col-md-3">
+            <div class="card shadow sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white text-center">
+                    <h6 class="mb-0"><i class="bi bi-droplet-fill"></i> Boilers</h6>
                 </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-12">
-            <h4>Auxiliary Boiler 2 (AB2)</h4>
-            {% if boiler2_data %}
-                <div id="boiler2-charts"></div>
-            {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> No data available for Auxiliary Boiler 2 in the selected date range.
+                <div class="list-group list-group-flush">
+                    <a href="#boiler1" class="list-group-item list-group-item-action text-center py-3 active">
+                        <div><i class="bi bi-droplet-fill d-block mb-1" style="font-size: 1.3rem;"></i></div>
+                        <strong>AB 1</strong>
+                    </a>
+                    <a href="#boiler2" class="list-group-item list-group-item-action text-center py-3">
+                        <div><i class="bi bi-droplet-fill d-block mb-1" style="font-size: 1.3rem;"></i></div>
+                        <strong>AB 2</strong>
+                    </a>
                 </div>
-            {% endif %}
+                <div class="card-footer bg-light">
+                    <small class="text-muted"><i class="bi bi-info-circle"></i> Quick navigation</small>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Reference Ranges -->
-    <div class="row mt-4">
-        <div class="col-12">
+        <!-- Main Content Area -->
+        <div class="col-lg-7 col-md-6">
+            <!-- Auxiliary Boiler 1 -->
+            <div id="boiler1" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0"><i class="bi bi-droplet-fill"></i> Auxiliary Boiler 1 (AB1)</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if boiler1_data %}
+                            <div id="boiler1-charts"></div>
+                        {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle"></i> No data available for Auxiliary Boiler 1 in the selected date range.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auxiliary Boiler 2 -->
+            <div id="boiler2" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4 class="mb-0"><i class="bi bi-droplet-fill"></i> Auxiliary Boiler 2 (AB2)</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if boiler2_data %}
+                            <div id="boiler2-charts"></div>
+                        {% else %}
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-info-circle"></i> No data available for Auxiliary Boiler 2 in the selected date range.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reference Ranges -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0"><i class="bi bi-table"></i> Recommended Parameter Ranges</h5>
                 </div>
                 <div class="card-body">
-                    <table class="table table-sm table-striped">
-                        <thead>
-                            <tr>
-                                <th>Parameter</th>
-                                <th>Range</th>
-                                <th>Recommended Limit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Phosphate</td>
-                                <td>0-100 ppm</td>
-                                <td>20-50 ppm PO4</td>
-                            </tr>
-                            <tr>
-                                <td>P-Alkalinity</td>
-                                <td>25-300 ppm</td>
-                                <td>150-300 ppm CaCO3</td>
-                            </tr>
-                            <tr>
-                                <td>M-Alkalinity</td>
-                                <td>0-500 ppm</td>
-                                <td>700 ppm CaCO3</td>
-                            </tr>
-                            <tr>
-                                <td>Chloride</td>
-                                <td>-</td>
-                                <td>200 ppm max</td>
-                            </tr>
-                            <tr>
-                                <td>pH</td>
-                                <td>-</td>
-                                <td>8.5-9.2</td>
-                            </tr>
-                            <tr>
-                                <td>Hydrazine</td>
-                                <td>0-0.5 mg/L</td>
-                                <td>0-0.5 mg/L</td>
-                            </tr>
-                            <tr>
-                                <td>DEHA</td>
-                                <td>0-0.5 mg/L</td>
-                                <td>0-0.5 mg/L</td>
-                            </tr>
-                            <tr>
-                                <td>Conductivity</td>
-                                <td>0-2250 µS/cm</td>
-                                <td>-</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Range</th>
+                                    <th>Recommended Limit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Phosphate</td>
+                                    <td>0-100 ppm</td>
+                                    <td>20-50 ppm PO4</td>
+                                </tr>
+                                <tr>
+                                    <td>P-Alkalinity</td>
+                                    <td>25-300 ppm</td>
+                                    <td>150-300 ppm CaCO3</td>
+                                </tr>
+                                <tr>
+                                    <td>M-Alkalinity</td>
+                                    <td>0-500 ppm</td>
+                                    <td>700 ppm CaCO3</td>
+                                </tr>
+                                <tr>
+                                    <td>Chloride</td>
+                                    <td>-</td>
+                                    <td>200 ppm max</td>
+                                </tr>
+                                <tr>
+                                    <td>pH</td>
+                                    <td>-</td>
+                                    <td>8.5-9.2</td>
+                                </tr>
+                                <tr>
+                                    <td>Hydrazine</td>
+                                    <td>0-0.5 mg/L</td>
+                                    <td>0-0.5 mg/L</td>
+                                </tr>
+                                <tr>
+                                    <td>DEHA</td>
+                                    <td>0-0.5 mg/L</td>
+                                    <td>0-0.5 mg/L</td>
+                                </tr>
+                                <tr>
+                                    <td>Conductivity</td>
+                                    <td>0-2250 µS/cm</td>
+                                    <td>-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Main Content Area -->
+
+        <!-- Right Sidebar -->
+        <div class="col-lg-3 col-md-3 mb-4">
+            <!-- Vessel Selector -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-ship"></i> Select Vessel</h6>
+                    <select class="form-select" id="vessel-selector">
+                        {% for v in vessels %}
+                        <option value="{{ v.id }}" {% if v.id == vessel.id %}selected{% endif %}>
+                            {{ v.vessel_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-muted small mt-2 mb-0">{{ vessel.vessel_id }}</p>
+                </div>
+            </div>
+
+            <!-- Boiler Alerts -->
+            <div class="card border-danger">
+                <div class="card-header" style="background-color: #dc3545; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Boiler Alerts</h6>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                        <div class="list-group list-group-flush">
+                            {% for alert in alerts[:5] %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="small">
+                                        <strong>{{ alert.sampling_point_name or 'N/A' }}</strong><br>
+                                        <span class="text-muted">{{ alert.parameter_name }}</span><br>
+                                        <span class="badge bg-danger">{{ alert.measured_value }}</span>
+                                        <small class="text-muted">{{ alert.alert_date[:10] }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="mb-0" style="color: #6e6e73;">
+                            <i class="bi bi-check-circle-fill" style="color: #0071e3;"></i> No active alerts
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -142,6 +231,20 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- Plotly.js for charts -->
+<script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}"></script>
+<script>
+// Vessel selector - reload page when vessel changes
+const vesselSelector = document.getElementById('vessel-selector');
+if (vesselSelector) {
+    vesselSelector.addEventListener('change', function() {
+        const newVesselId = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('vessel_id', newVesselId);
+        window.location.href = currentUrl.toString();
+    });
+}
+</script>
 <script>
 // Organize data by parameter
 function organizeDataByParameter(measurements) {

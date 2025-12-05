@@ -142,6 +142,8 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- Plotly.js for charts -->
+<script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}"></script>
 <script>
 // Cooling water charts (time series)
 {% if cooling_data %}

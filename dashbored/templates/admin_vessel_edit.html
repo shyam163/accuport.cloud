@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Vessel Specifications - {{ vessel.vessel_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Breadcrumb -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item active">Edit Vessel Specifications</li>
+                </ol>
+            </nav>
+            <h2><i class="bi bi-gear"></i> Edit Vessel Specifications</h2>
+            <p class="text-muted">{{ vessel.vessel_name }} ({{ vessel.vessel_id }})</p>
+        </div>
+    </div>
+
+    <form method="POST">
+        <div class="row">
+            <!-- Main Form Column -->
+            <div class="col-lg-8">
+                
+                <!-- Section 1: Vessel Information -->
+                <div class="card mb-4">
+                    <div class="card-header" style="background-color: #0d6efd; color: white;">
+                        <h5 class="mb-0"><i class="bi bi-ship"></i> Vessel Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="vessel_name" class="form-label">Vessel Name</label>
+                                <input type="text" class="form-control" id="vessel_name" name="vessel_name" 
+                                       value="{{ details.vessel_name or '' }}" placeholder="e.g., MT Aqua">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="vessel_type" class="form-label">Vessel Type</label>
+                                <input type="text" class="form-control" id="vessel_type" name="vessel_type" 
+                                       value="{{ details.vessel_type or '' }}" placeholder="e.g., Oil/Chemical Tanker">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="year_of_build" class="form-label">Year of Build</label>
+                                <input type="number" class="form-control" id="year_of_build" name="year_of_build" 
+                                       value="{{ details.year_of_build or '' }}" min="1900" max="2099" placeholder="e.g., 2018">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="imo_number" class="form-label">IMO Number</label>
+                                <input type="text" class="form-control" id="imo_number" name="imo_number" 
+                                       value="{{ details.imo_number or '' }}" placeholder="e.g., 9876543">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="company_name" class="form-label">Company Name</label>
+                                <input type="text" class="form-control" id="company_name" name="company_name" 
+                                       value="{{ details.company_name or '' }}" placeholder="e.g., Pacific Marine Shipping">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Main Engines -->
+                <div class="card mb-4">
+                    <div class="card-header" style="background-color: #dc3545; color: white;">
+                        <h5 class="mb-0"><i class="bi bi-gear-fill"></i> Main Engines</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Main Engine 1 -->
+                        <h6 class="text-danger"><strong>Main Engine 1</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="me1_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="me1_make" name="me1_make" 
+                                       value="{{ details.me1_make or '' }}" placeholder="e.g., MAN B&W">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="me1_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="me1_model" name="me1_model" 
+                                       value="{{ details.me1_model or '' }}" placeholder="e.g., 6S50ME-C8.5">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="me1_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="me1_serial" name="me1_serial" 
+                                       value="{{ details.me1_serial or '' }}" placeholder="e.g., ME1-50298-2018">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="me1_system_oil" class="form-label">System Oil</label>
+                                <input type="text" class="form-control" id="me1_system_oil" name="me1_system_oil" 
+                                       value="{{ details.me1_system_oil or '' }}" placeholder="e.g., Shell Alexia S6 40">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="me1_cylinder_oil" class="form-label">Cylinder Oil</label>
+                                <input type="text" class="form-control" id="me1_cylinder_oil" name="me1_cylinder_oil" 
+                                       value="{{ details.me1_cylinder_oil or '' }}" placeholder="e.g., Shell Alexia S5 70">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="me1_fuel1" class="form-label">Fuel 1</label>
+                                <input type="text" class="form-control" id="me1_fuel1" name="me1_fuel1" 
+                                       value="{{ details.me1_fuel1 or '' }}" placeholder="e.g., VLSFO, HFO, MGO">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="me1_fuel2" class="form-label">Fuel 2</label>
+                                <input type="text" class="form-control" id="me1_fuel2" name="me1_fuel2" 
+                                       value="{{ details.me1_fuel2 or '' }}" placeholder="e.g., MGO">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Main Engine 2 -->
+                        <h6 class="text-danger"><strong>Main Engine 2</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="me2_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="me2_make" name="me2_make" 
+                                       value="{{ details.me2_make or '' }}" placeholder="e.g., MAN B&W">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="me2_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="me2_model" name="me2_model" 
+                                       value="{{ details.me2_model or '' }}" placeholder="e.g., 6S50ME-C8.5">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="me2_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="me2_serial" name="me2_serial" 
+                                       value="{{ details.me2_serial or '' }}" placeholder="e.g., ME2-50299-2018">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="me2_system_oil" class="form-label">System Oil</label>
+                                <input type="text" class="form-control" id="me2_system_oil" name="me2_system_oil" 
+                                       value="{{ details.me2_system_oil or '' }}" placeholder="e.g., Shell Alexia S6 40">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="me2_cylinder_oil" class="form-label">Cylinder Oil</label>
+                                <input type="text" class="form-control" id="me2_cylinder_oil" name="me2_cylinder_oil" 
+                                       value="{{ details.me2_cylinder_oil or '' }}" placeholder="e.g., Shell Alexia S5 70">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="me2_fuel1" class="form-label">Fuel 1</label>
+                                <input type="text" class="form-control" id="me2_fuel1" name="me2_fuel1" 
+                                       value="{{ details.me2_fuel1 or '' }}" placeholder="e.g., VLSFO, HFO, MGO">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="me2_fuel2" class="form-label">Fuel 2</label>
+                                <input type="text" class="form-control" id="me2_fuel2" name="me2_fuel2" 
+                                       value="{{ details.me2_fuel2 or '' }}" placeholder="e.g., MGO">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Auxiliary Engines -->
+                <div class="card mb-4">
+                    <div class="card-header" style="background-color: #198754; color: white;">
+                        <h5 class="mb-0"><i class="bi bi-gear-fill"></i> Auxiliary Engines</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Shared AE Fields -->
+                        <h6 class="text-success"><strong>Shared (All AE)</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ae_system_oil" class="form-label">System Oil</label>
+                                <input type="text" class="form-control" id="ae_system_oil" name="ae_system_oil" 
+                                       value="{{ details.ae_system_oil or '' }}" placeholder="e.g., Shell Gadinia S3 40">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae_fuel1" class="form-label">Fuel 1</label>
+                                <input type="text" class="form-control" id="ae_fuel1" name="ae_fuel1" 
+                                       value="{{ details.ae_fuel1 or '' }}" placeholder="e.g., MGO">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae_fuel2" class="form-label">Fuel 2</label>
+                                <input type="text" class="form-control" id="ae_fuel2" name="ae_fuel2" 
+                                       value="{{ details.ae_fuel2 or '' }}" placeholder="e.g., LSMGO">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- AE 1 -->
+                        <h6 class="text-success"><strong>AE 1</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ae1_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="ae1_make" name="ae1_make" 
+                                       value="{{ details.ae1_make or '' }}" placeholder="e.g., Caterpillar">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae1_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="ae1_model" name="ae1_model" 
+                                       value="{{ details.ae1_model or '' }}" placeholder="e.g., 3516C TA">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae1_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="ae1_serial" name="ae1_serial" 
+                                       value="{{ details.ae1_serial or '' }}" placeholder="e.g., AE1-CAT-35167">
+                            </div>
+                        </div>
+
+                        <!-- AE 2 -->
+                        <h6 class="text-success"><strong>AE 2</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ae2_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="ae2_make" name="ae2_make" 
+                                       value="{{ details.ae2_make or '' }}" placeholder="e.g., Caterpillar">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae2_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="ae2_model" name="ae2_model" 
+                                       value="{{ details.ae2_model or '' }}" placeholder="e.g., 3516C TA">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae2_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="ae2_serial" name="ae2_serial" 
+                                       value="{{ details.ae2_serial or '' }}" placeholder="e.g., AE2-CAT-35168">
+                            </div>
+                        </div>
+
+                        <!-- AE 3 -->
+                        <h6 class="text-success"><strong>AE 3</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ae3_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="ae3_make" name="ae3_make" 
+                                       value="{{ details.ae3_make or '' }}" placeholder="e.g., Caterpillar">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae3_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="ae3_model" name="ae3_model" 
+                                       value="{{ details.ae3_model or '' }}" placeholder="e.g., 3516C TA">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ae3_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="ae3_serial" name="ae3_serial" 
+                                       value="{{ details.ae3_serial or '' }}" placeholder="e.g., AE3-CAT-35169">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Boiler Systems -->
+                <div class="card mb-4">
+                    <div class="card-header" style="background-color: #0d6efd; color: white;">
+                        <h5 class="mb-0"><i class="bi bi-droplet-fill"></i> Boiler Systems</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Shared Boiler Fields -->
+                        <h6 class="text-primary"><strong>Shared (All Boilers)</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="boiler_system_oil" class="form-label">System Oil</label>
+                                <input type="text" class="form-control" id="boiler_system_oil" name="boiler_system_oil" 
+                                       value="{{ details.boiler_system_oil or '' }}" placeholder="e.g., Shell Morlina S2 BL 10">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="boiler_fuel1" class="form-label">Fuel 1</label>
+                                <input type="text" class="form-control" id="boiler_fuel1" name="boiler_fuel1" 
+                                       value="{{ details.boiler_fuel1 or '' }}" placeholder="e.g., MGO">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="boiler_fuel2" class="form-label">Fuel 2</label>
+                                <input type="text" class="form-control" id="boiler_fuel2" name="boiler_fuel2" 
+                                       value="{{ details.boiler_fuel2 or '' }}" placeholder="e.g., LSMGO">
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Aux Boiler 1 -->
+                        <h6 class="text-primary"><strong>Auxiliary Boiler 1</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ab1_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="ab1_make" name="ab1_make" 
+                                       value="{{ details.ab1_make or '' }}" placeholder="e.g., Aalborg">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ab1_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="ab1_model" name="ab1_model" 
+                                       value="{{ details.ab1_model or '' }}" placeholder="e.g., OC-TC 3500">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ab1_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="ab1_serial" name="ab1_serial" 
+                                       value="{{ details.ab1_serial or '' }}" placeholder="e.g., AB1-AAL-35001">
+                            </div>
+                        </div>
+
+                        <!-- Aux Boiler 2 -->
+                        <h6 class="text-primary"><strong>Auxiliary Boiler 2</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ab2_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="ab2_make" name="ab2_make" 
+                                       value="{{ details.ab2_make or '' }}" placeholder="e.g., Aalborg">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ab2_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="ab2_model" name="ab2_model" 
+                                       value="{{ details.ab2_model or '' }}" placeholder="e.g., Mission OC 1200">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ab2_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="ab2_serial" name="ab2_serial" 
+                                       value="{{ details.ab2_serial or '' }}" placeholder="e.g., AB2-AAL-12002">
+                            </div>
+                        </div>
+
+                        <!-- EGE -->
+                        <h6 class="text-primary"><strong>EGE (Exhaust Gas Economizer)</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="ege_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="ege_make" name="ege_make" 
+                                       value="{{ details.ege_make or '' }}" placeholder="e.g., Aalborg">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ege_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="ege_model" name="ege_model" 
+                                       value="{{ details.ege_model or '' }}" placeholder="e.g., OC-EGE 800">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ege_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="ege_serial" name="ege_serial" 
+                                       value="{{ details.ege_serial or '' }}" placeholder="e.g., EGE-AAL-8001">
+                            </div>
+                        </div>
+
+                        <!-- Hotwell -->
+                        <h6 class="text-primary"><strong>Hotwell</strong></h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hotwell_deha" class="form-label">DEHA (Deaeration Agent)</label>
+                                <input type="text" class="form-control" id="hotwell_deha" name="hotwell_deha"
+                                       value="{{ details.hotwell_deha or '' }}" placeholder="e.g., DEHA 40% Solution">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="hotwell_hydrazine" class="form-label">Hydrazine (Oxygen Scavenger)</label>
+                                <input type="text" class="form-control" id="hotwell_hydrazine" name="hotwell_hydrazine"
+                                       value="{{ details.hotwell_hydrazine or '' }}" placeholder="e.g., Hydrazine 35% Solution">
+                            </div>
+                        </div>
+
+
+                        <hr>
+
+                        <!-- Water Treatment -->
+                        <h6 class="text-primary"><strong>Water Treatment</strong></h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="bwt_chemical_manufacturer" class="form-label">Boiler WT - Manufacturer</label>
+                                <input type="text" class="form-control" id="bwt_chemical_manufacturer" name="bwt_chemical_manufacturer" 
+                                       value="{{ details.bwt_chemical_manufacturer or '' }}" placeholder="e.g., Vecom Marine">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="bwt_chemicals_in_use" class="form-label">Boiler WT - Chemicals</label>
+                                <input type="text" class="form-control" id="bwt_chemicals_in_use" name="bwt_chemicals_in_use" 
+                                       value="{{ details.bwt_chemicals_in_use or '' }}" placeholder="e.g., Vecom WT220, WT300">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="cwt_chemical_manufacturer" class="form-label">Cooling WT - Manufacturer</label>
+                                <input type="text" class="form-control" id="cwt_chemical_manufacturer" name="cwt_chemical_manufacturer" 
+                                       value="{{ details.cwt_chemical_manufacturer or '' }}" placeholder="e.g., Drew Marine">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cwt_chemicals_in_use" class="form-label">Cooling WT - Chemicals</label>
+                                <input type="text" class="form-control" id="cwt_chemicals_in_use" name="cwt_chemicals_in_use" 
+                                       value="{{ details.cwt_chemicals_in_use or '' }}" placeholder="e.g., Aquamag Liquid">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 5: Environmental Systems -->
+                <div class="card mb-4">
+                    <div class="card-header" style="background-color: #0dcaf0; color: white;">
+                        <h5 class="mb-0"><i class="bi bi-droplet-half"></i> Environmental Systems</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- BWTS -->
+                        <h6 class="text-info"><strong>Ballast Water Treatment System (BWTS)</strong></h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="bwts_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="bwts_make" name="bwts_make" 
+                                       value="{{ details.bwts_make or '' }}" placeholder="e.g., Optimarin">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="bwts_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="bwts_model" name="bwts_model" 
+                                       value="{{ details.bwts_model or '' }}" placeholder="e.g., OBS 500">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="bwts_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="bwts_serial" name="bwts_serial" 
+                                       value="{{ details.bwts_serial or '' }}" placeholder="e.g., BWTS-OPT-5001">
+                            </div>
+                        </div>
+
+                        <!-- EGCS -->
+                        <h6 class="text-info"><strong>Exhaust Gas Cleaning System (EGCS)</strong></h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="egcs_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="egcs_make" name="egcs_make" 
+                                       value="{{ details.egcs_make or '' }}" placeholder="e.g., Alfa Laval">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="egcs_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="egcs_model" name="egcs_model" 
+                                       value="{{ details.egcs_model or '' }}" placeholder="e.g., PureSOx 2.0">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="egcs_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="egcs_serial" name="egcs_serial" 
+                                       value="{{ details.egcs_serial or '' }}" placeholder="e.g., EGCS-AL-PS2001">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="egcs_type" class="form-label">Type</label>
+                                <input type="text" class="form-control" id="egcs_type" name="egcs_type" 
+                                       value="{{ details.egcs_type or '' }}" placeholder="e.g., Open Loop">
+                            </div>
+                        </div>
+
+                        <!-- STP -->
+                        <h6 class="text-info"><strong>Sewage Treatment Plant (STP)</strong></h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="stp_make" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="stp_make" name="stp_make" 
+                                       value="{{ details.stp_make or '' }}" placeholder="e.g., Wartsila">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="stp_model" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="stp_model" name="stp_model" 
+                                       value="{{ details.stp_model or '' }}" placeholder="e.g., Biokinetics 25">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="stp_serial" class="form-label">Serial Number</label>
+                                <input type="text" class="form-control" id="stp_serial" name="stp_serial" 
+                                       value="{{ details.stp_serial or '' }}" placeholder="e.g., STP-WRT-BK251">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="stp_capacity" class="form-label">Capacity</label>
+                                <input type="text" class="form-control" id="stp_capacity" name="stp_capacity" 
+                                       value="{{ details.stp_capacity or '' }}" placeholder="e.g., 25 m³/day">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Buttons -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Save Vessel Specifications
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Help Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 20px;">
+                    <div class="card-header" style="background-color: #6c757d; color: white;">
+                        <h6 class="mb-0"><i class="bi bi-question-circle"></i> Fill Guidelines</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6><strong>Common Abbreviations:</strong></h6>
+                        <ul class="small">
+                            <li><strong>ME</strong> - Main Engine</li>
+                            <li><strong>AE</strong> - Auxiliary Engine</li>
+                            <li><strong>AB</strong> - Auxiliary Boiler</li>
+                            <li><strong>EGE</strong> - Exhaust Gas Economizer</li>
+                            <li><strong>VLSFO</strong> - Very Low Sulfur Fuel Oil</li>
+                            <li><strong>HFO</strong> - Heavy Fuel Oil</li>
+                            <li><strong>MGO</strong> - Marine Gas Oil</li>
+                            <li><strong>LSMGO</strong> - Low Sulfur Marine Gas Oil</li>
+                            <li><strong>BWTS</strong> - Ballast Water Treatment System</li>
+                            <li><strong>EGCS</strong> - Exhaust Gas Cleaning System</li>
+                            <li><strong>STP</strong> - Sewage Treatment Plant</li>
+                        </ul>
+
+                        <hr>
+
+                        <h6><strong>Tips:</strong></h6>
+                        <ul class="small">
+                            <li>Leave fields blank if information is not available</li>
+                            <li>Only filled fields will be displayed on equipment pages</li>
+                            <li>Use manufacturer's exact model names when possible</li>
+                            <li>Include units in capacity fields (e.g., "25 m³/day")</li>
+                        </ul>
+
+                        {% if details.updated_at %}
+                        <hr>
+                        <p class="small text-muted mb-0">
+                            <strong>Last Updated:</strong><br>
+                            {{ details.updated_at }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

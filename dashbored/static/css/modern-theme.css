@@ -1,0 +1,878 @@
+/* Modern Apple-inspired Theme for Accuport Dashboard */
+
+:root {
+    /* Apple-inspired Color Palette - Blue & White Theme */
+    --primary-white: #ffffff;
+    --secondary-white: #fbfbfd;
+    --light-gray: #f5f5f7;
+    --medium-gray: #e8e8ed;
+    --dark-gray: #86868b;
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+
+    /* Blue Palette - Primary theme colors */
+    --accent-blue: #0071e3;
+    --accent-blue-hover: #0077ed;
+    --accent-blue-light: #e3f2fd;
+    --accent-blue-medium: #64b5f6;
+    --accent-blue-dark: #0051a8;
+
+    /* Accent colors - refined to match blue theme */
+    --accent-green: #34c759;
+    --accent-orange: #ff9500;
+    --accent-red: #ff3b30;
+    --accent-purple: #007aff;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.1);
+
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+
+    /* Transitions */
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global Styles */
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: var(--secondary-white);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+h4 {
+    font-size: 24px;
+    font-weight: 600;
+}
+
+h5 {
+    font-size: 19px;
+    font-weight: 600;
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+    font-size: 14px;
+}
+
+/* Cards */
+.card {
+    background: var(--primary-white);
+    border: 1px solid var(--medium-gray);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-smooth);
+    position: relative;
+    z-index: auto;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--accent-blue-light) 0%, rgba(255, 255, 255, 0.9) 100%);
+    border-bottom: 1px solid var(--accent-blue-medium);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: 16px 20px;
+    font-weight: 600;
+    color: var(--accent-blue-dark);
+}
+
+.card-header .bi {
+    color: var(--accent-blue);
+    margin-right: 6px;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+/* Hover Shadow Effect */
+.hover-shadow {
+    transition: var(--transition-smooth);
+    border: 1px solid var(--medium-gray);
+}
+
+.hover-shadow:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-4px);
+    border-color: var(--dark-gray);
+}
+
+/* Buttons */
+.btn {
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    transition: var(--transition-fast);
+    border: none;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-blue-hover);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+    background: var(--accent-green);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--accent-red);
+    color: white;
+}
+
+.btn-warning {
+    background: var(--accent-orange);
+    color: white;
+}
+
+.btn-outline-primary {
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.btn-outline-secondary {
+    border: 1px solid var(--dark-gray);
+    color: var(--text-primary);
+    background: transparent;
+}
+
+.btn-outline-secondary:hover {
+    background: var(--light-gray);
+    border-color: var(--text-primary);
+}
+
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+.btn-lg {
+    padding: 14px 28px;
+    font-size: 17px;
+}
+
+/* Forms */
+.form-control, .form-select {
+    border: 1px solid var(--medium-gray);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 15px;
+    transition: var(--transition-fast);
+    background: var(--primary-white);
+    color: var(--text-primary);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.form-check-input {
+    border: 1.5px solid var(--dark-gray);
+    border-radius: 4px;
+}
+
+.form-check-input:checked {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+/* Navbar - White with Blue Accents */
+.navbar {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--medium-gray);
+    padding: 12px 0;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Override Bootstrap navbar-dark and bg-primary classes */
+.navbar-dark,
+.navbar.bg-primary {
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.navbar-dark .navbar-brand,
+.navbar-dark .navbar-nav .nav-link {
+    color: var(--text-primary) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus {
+    color: var(--accent-blue) !important;
+}
+
+.navbar-dark .navbar-toggler {
+    border-color: var(--medium-gray) !important;
+}
+
+.navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(29, 29, 31, 0.75)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 19px;
+    color: var(--accent-blue);
+    letter-spacing: -0.02em;
+    transition: var(--transition-fast);
+}
+
+.navbar-brand:hover {
+    color: var(--accent-blue-hover);
+}
+
+.navbar-brand .bi {
+    color: var(--accent-blue);
+}
+
+.nav-link {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 15px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+}
+
+.nav-link:hover {
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
+.nav-link .bi {
+    color: var(--accent-blue);
+    margin-right: 4px;
+}
+
+.dropdown-menu {
+    border: 1px solid var(--medium-gray);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: 8px;
+    background: var(--primary-white);
+    z-index: 100000 !important;
+}
+
+/* Navbar dropdown menus specifically */
+.navbar .dropdown-menu,
+.navbar-nav .dropdown-menu {
+    z-index: 100000 !important;
+}
+
+.dropdown-menu.show {
+    z-index: 100000 !important;
+}
+
+.dropdown-item {
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-size: 15px;
+    transition: var(--transition-fast);
+    color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+    background: var(--light-gray);
+    color: var(--text-primary);
+}
+
+.dropdown-divider {
+    border-color: var(--medium-gray);
+    margin: 4px 0;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+}
+
+.bg-success {
+    background-color: var(--accent-green) !important;
+}
+
+.bg-danger {
+    background-color: var(--accent-red) !important;
+}
+
+.bg-warning {
+    background-color: var(--accent-orange) !important;
+}
+
+.bg-info {
+    background-color: var(--accent-blue) !important;
+}
+
+.bg-secondary {
+    background-color: var(--dark-gray) !important;
+}
+
+.bg-primary {
+    background-color: var(--accent-blue) !important;
+}
+
+/* Alerts */
+.alert {
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    font-size: 15px;
+    box-shadow: var(--shadow-sm);
+}
+
+.alert-success {
+    background: rgba(48, 209, 88, 0.1);
+    color: #1e8e3e;
+}
+
+.alert-danger {
+    background: rgba(255, 59, 48, 0.1);
+    color: #d70015;
+}
+
+.alert-warning {
+    background: rgba(255, 149, 0, 0.1);
+    color: #c93400;
+}
+
+.alert-info {
+    background: rgba(0, 113, 227, 0.1);
+    color: var(--accent-blue);
+}
+
+/* Tables */
+.table {
+    background: var(--primary-white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.table thead {
+    background: var(--light-gray);
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--medium-gray);
+    padding: 12px 16px;
+}
+
+.table td {
+    padding: 14px 16px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.table-hover tbody tr:hover {
+    background: var(--secondary-white);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background: var(--secondary-white);
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 16px;
+}
+
+.breadcrumb-item {
+    font-size: 14px;
+}
+
+.breadcrumb-item a {
+    color: var(--accent-blue);
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: var(--text-secondary);
+}
+
+/* Icons */
+.bi {
+    vertical-align: -0.125em;
+}
+
+/* Equipment Overview Cards - Enhanced Blue Theme */
+.equipment-card {
+    transition: var(--transition-smooth);
+    border: 1px solid var(--medium-gray);
+    background: linear-gradient(135deg, var(--primary-white) 0%, var(--secondary-white) 100%);
+}
+
+.equipment-card .card-body {
+    padding: 32px 24px;
+}
+
+.equipment-card h5 {
+    margin-top: 16px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.equipment-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--accent-blue-medium);
+    box-shadow: 0 12px 32px rgba(0, 113, 227, 0.15);
+}
+
+.equipment-card .bi {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Equipment-specific icon colors - blue variations */
+.equipment-card .text-primary {
+    color: var(--accent-blue) !important;
+}
+
+.equipment-card .text-danger {
+    color: var(--accent-blue-dark) !important;
+}
+
+.equipment-card .text-warning {
+    color: var(--accent-blue-medium) !important;
+}
+
+.equipment-card .text-info {
+    color: var(--accent-blue-light) !important;
+}
+
+.equipment-card .text-success {
+    color: var(--accent-blue-hover) !important;
+}
+
+.equipment-card .text-secondary {
+    color: var(--dark-gray) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light-gray);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark-gray);
+    border-radius: 6px;
+    border: 2px solid var(--light-gray);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    h2 {
+        font-size: 28px;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+}
+
+/* Loading States */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Smooth Page Transitions */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Main content - keep below navbar */
+main {
+    position: relative;
+    z-index: 1;
+}
+
+/* Navbar - must be above all page content */
+.navbar {
+    position: relative;
+    z-index: 10000;
+}
+
+/* Navbar sticky effect */
+.navbar.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10000;
+}
+
+/* Container improvements */
+.container-fluid {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+/* Color indicators for status */
+.text-danger {
+    color: var(--accent-red) !important;
+}
+
+.text-success {
+    color: var(--accent-green) !important;
+}
+
+.text-warning {
+    color: var(--accent-orange) !important;
+}
+
+.text-info {
+    color: var(--accent-blue) !important;
+}
+
+.text-primary {
+    color: var(--accent-blue) !important;
+}
+
+/* Border colors */
+.border-warning {
+    border-color: var(--accent-orange) !important;
+}
+
+.border-danger {
+    border-color: var(--accent-red) !important;
+}
+
+/* Background colors for cards */
+.bg-light {
+    background-color: var(--light-gray) !important;
+}
+
+/* Dashboard-specific styles */
+.dashboard-title {
+    color: var(--accent-blue-dark);
+    font-weight: 600;
+}
+
+.dashboard-title .bi {
+    color: var(--accent-blue);
+}
+
+/* Vessel selector card */
+.vessel-selector-card {
+    border: 2px solid var(--accent-blue-light);
+    background: linear-gradient(135deg, var(--primary-white) 0%, var(--accent-blue-light) 100%);
+}
+
+.vessel-selector-card .card-title {
+    color: var(--accent-blue-dark);
+}
+
+.vessel-selector-card .form-select {
+    border: 2px solid var(--accent-blue-medium);
+}
+
+.vessel-selector-card .form-select:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+}
+
+/* Alert section styling */
+.alert-section {
+    border: 2px solid var(--accent-orange);
+    border-radius: var(--radius-lg);
+}
+
+.alert-section .card-header {
+    background: linear-gradient(135deg, rgba(255, 149, 0, 0.1) 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+/* Sidebar styling for equipment pages */
+.equipment-sidebar {
+    position: sticky;
+    top: 20px;
+}
+
+.equipment-sidebar .card {
+    border: 2px solid var(--accent-blue-light);
+    background: var(--primary-white);
+}
+
+.equipment-sidebar .card-title {
+    color: var(--accent-blue-dark);
+    font-weight: 600;
+}
+
+.equipment-sidebar .form-check-input:checked {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.equipment-sidebar .btn-outline-primary {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.equipment-sidebar .btn-outline-primary:hover {
+    background: var(--accent-blue);
+    color: white;
+}
+
+/* Chart containers */
+.chart-container {
+    background: var(--primary-white);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Page headers */
+.page-header {
+    padding: 24px 0;
+    border-bottom: 2px solid var(--accent-blue-light);
+    margin-bottom: 24px;
+}
+
+.page-header h2 {
+    color: var(--accent-blue-dark);
+}
+
+.page-header .breadcrumb-item.active {
+    color: var(--accent-blue);
+}
+
+/* Tab navigation styling */
+.nav-tabs {
+    border-bottom: 2px solid var(--accent-blue-light);
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-secondary);
+    border: none;
+    border-bottom: 3px solid transparent;
+    transition: var(--transition-fast);
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: var(--accent-blue-medium);
+    color: var(--accent-blue);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--accent-blue);
+    background: transparent;
+    border-bottom-color: var(--accent-blue);
+    font-weight: 600;
+}
+
+/* Loading spinner - blue themed */
+.spinner-border {
+    color: var(--accent-blue);
+}
+
+/* Progress bars */
+.progress {
+    background-color: var(--accent-blue-light);
+}
+
+.progress-bar {
+    background-color: var(--accent-blue);
+}
+
+/* ==========================================
+   BOOTSTRAP COLOR OVERRIDES - Apple Theme
+   ========================================== */
+
+/* Remove all green/teal backgrounds from alerts and cards */
+.alert-success {
+    background: var(--accent-blue-light) !important;
+    color: var(--accent-blue-dark) !important;
+    border: 1px solid var(--accent-blue-medium) !important;
+}
+
+.alert-info {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--medium-gray) !important;
+}
+
+/* Override bg-info and bg-success classes */
+.bg-info {
+    background-color: var(--secondary-white) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Keep badge success green for status indicators only */
+.badge.bg-success {
+    background-color: var(--accent-green) !important;
+}
+
+/* Override table row backgrounds */
+.table .bg-info {
+    background-color: var(--secondary-white) !important;
+}
+
+.table .bg-success {
+    background-color: rgba(52, 199, 89, 0.08) !important;
+}
+
+/* Card backgrounds - ensure pure white */
+.card.bg-light,
+.card.bg-info {
+    background: var(--primary-white) !important;
+    border: 1px solid var(--medium-gray) !important;
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+    background: var(--primary-white);
+    border: 1px solid var(--medium-gray);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-md);
+    z-index: 100000 !important;
+}
+
+/* Navbar dropdown menus - ensure highest z-index */
+nav.navbar .dropdown-menu,
+.navbar .dropdown-menu.show {
+    z-index: 100000 !important;
+    position: absolute !important;
+}
+
+.dropdown-item:hover {
+    background: var(--light-gray);
+    color: var(--accent-blue);
+}
+
+/* Override any remaining Bootstrap primary colors */
+.btn-primary:not(.btn-login) {
+    background: var(--accent-blue) !important;
+    border-color: var(--accent-blue) !important;
+}
+
+.btn-primary:hover:not(.btn-login) {
+    background: var(--accent-blue-hover) !important;
+    border-color: var(--accent-blue-hover) !important;
+}
+
+/* Text colors */
+.text-info {
+    color: var(--accent-blue) !important;
+}
+
+.text-primary {
+    color: var(--accent-blue) !important;
+}
+
+/* Border colors */
+.border-primary {
+    border-color: var(--accent-blue) !important;
+}
+
+.border-info {
+    border-color: var(--accent-blue-medium) !important;
+}
+
+/* Force navbar to be completely white - strongest override */
+nav.navbar,
+.navbar.navbar-dark.bg-primary,
+nav.bg-primary {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+}
+
+/* Override Bootstrap success badges with subtle Apple-style design */
+.badge.bg-success {
+    background-color: #f5f5f7 !important;
+    color: #6e6e73 !important;
+    border: 1px solid #e8e8ed !important;
+}
+
+/* Keep OKAY status badges subtle */
+.badge.bg-success:not(.btn) {
+    background-color: #f5f5f7 !important;
+    color: #6e6e73 !important;
+    border: 1px solid #e8e8ed !important;
+}

@@ -1,0 +1,756 @@
+{% extends "base.html" %}
+
+{% block title %}Main Engines - {{ vessel.vessel_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Main Engines</li>
+                </ol>
+            </nav>
+
+            <h2><i class="bi bi-gear-fill text-primary"></i> Main Engines Analysis</h2>
+            <p class="text-muted">{{ vessel.vessel_name }} - {{ vessel.vessel_id }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Sidebar -->
+        <div class="col-md-3 col-lg-2 mb-4">
+            <!-- Engine Selection -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-check2-square"></i> Select Engines</h6>
+                    <div class="form-check">
+                        <input class="form-check-input engine-checkbox" type="checkbox" value="ME1" id="me1-check" checked>
+                        <label class="form-check-label" for="me1-check">
+                            <i class="bi bi-gear-fill text-primary"></i> ME 1
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input engine-checkbox" type="checkbox" value="ME2" id="me2-check">
+                        <label class="form-check-label" for="me2-check">
+                            <i class="bi bi-gear-fill text-primary"></i> ME 2
+                        </label>
+                    </div>
+                    <hr>
+                    <button class="btn btn-sm btn-outline-primary w-100 mb-2" id="select-all">
+                        <i class="bi bi-check-all"></i> Select All
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary w-100" id="deselect-all">
+                        <i class="bi bi-x-square"></i> Deselect All
+                    </button>
+                </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-calendar-range"></i> Date Range</h6>
+                    <form method="GET" id="filter-form">
+                        <div class="mb-3">
+                            <label for="start_date" class="form-label"><strong>Start Date</strong></label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="end_date" class="form-label"><strong>End Date</strong></label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-funnel"></i> Apply Filter
+                        </button>
+                        <button type="button" class="btn btn-secondary w-100" onclick="window.location.href='{{ url_for('main_engines_multi') }}'">
+                            <i class="bi bi-x-circle"></i> Reset
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-6 col-lg-7">
+            <div class="card">
+                <!-- Tab Navigation -->
+                <div class="card-header p-0">
+                    <ul class="nav nav-tabs nav-fill" id="me-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="cooling-tab" data-bs-toggle="tab"
+                                    data-bs-target="#cooling-content" type="button" role="tab">
+                                <i class="bi bi-thermometer-half"></i> Cooling Water
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="lube-tab" data-bs-toggle="tab"
+                                    data-bs-target="#lube-content" type="button" role="tab">
+                                <i class="bi bi-droplet"></i> Lubricating Oil
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="scavenge-tab" data-bs-toggle="tab"
+                                    data-bs-target="#scavenge-content" type="button" role="tab">
+                                <i class="bi bi-diagram-3"></i> Scavenge Drain
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="card-body">
+                    <div class="tab-content" id="me-tab-content">
+                        <!-- Cooling Water Tab -->
+                        <div class="tab-pane fade show active" id="cooling-content" role="tabpanel">
+                            {% if cooling_data %}
+                                <div id="cooling-charts"></div>
+                            {% else %}
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle"></i> No cooling water data available for the selected engines and date range.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Lubricating Oil Tab -->
+                        <div class="tab-pane fade" id="lube-content" role="tabpanel">
+                            {% if lube_data %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover" id="lube-oil-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Engine</th>
+                                                <th>Date</th>
+                                                <th>Parameter</th>
+                                                <th>Value</th>
+                                                <th>Unit</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for measurement in lube_data %}
+                                            <tr class="engine-row" data-engine="{{ measurement.engine_id }}">
+                                                <td><i class="bi bi-gear-fill text-primary"></i> {{ measurement.engine_id }}</td>
+                                                <td>{{ measurement.measurement_date[:10] }}</td>
+                                                <td>{{ measurement.parameter_name }}</td>
+                                                <td><strong>{{ measurement.value }}</strong></td>
+                                                <td>{{ measurement.unit }}</td>
+                                                <td>
+                                                    <span class="badge
+                                                        {% if measurement.ideal_status == 'OKAY' %}bg-success
+                                                        {% elif measurement.ideal_status in ['TOO LOW', 'TOO HIGH'] %}bg-danger
+                                                        {% else %}bg-warning text-dark{% endif %}">
+                                                        {{ measurement.ideal_status }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle"></i> No lubricating oil data available for the selected engines and date range.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Scavenge Drain Tab -->
+                        <div class="tab-pane fade" id="scavenge-content" role="tabpanel">
+                            {% if scavenge_data %}
+                                <!-- Cylinder Selection -->
+                                <div class="card mb-3" style="background-color: #f5f5f7;">
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-3"><i class="bi bi-diagram-3"></i> Select Cylinders</h6>
+                                        <div class="row">
+                                            {% for i in range(1, 13) %}
+                                            <div class="col-6 col-md-4 col-lg-2 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input cylinder-checkbox" type="checkbox" value="CYL{{ i }}" id="cyl{{ i }}-check" {% if i <= 6 %}checked{% endif %}>
+                                                    <label class="form-check-label" for="cyl{{ i }}-check">
+                                                        Cyl {{ i }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary me-2" id="select-all-cylinders">
+                                                <i class="bi bi-check-all"></i> Select All
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" id="deselect-all-cylinders">
+                                                <i class="bi bi-x-square"></i> Deselect All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="scavenge-timeseries" style="margin-bottom: 20px;"></div>
+                                <div id="scavenge-scatter"></div>
+                            {% else %}
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle"></i> No scavenge drain data available for the selected engines and date range.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="col-md-3 col-lg-3 mb-4">
+            <!-- Vessel Selector (hidden for vessel users) -->
+            {% if not current_user.is_vessel_user() %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-ship"></i> Select Vessel</h6>
+                    <select class="form-select" id="vessel-selector">
+                        {% for v in vessels %}
+                        <option value="{{ v.id }}" {% if v.id == vessel.id %}selected{% endif %}>
+                            {{ v.vessel_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-muted small mt-2 mb-0">{{ vessel.vessel_id }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Vessel Equipment Specifications -->
+            {% if vessel_specs %}
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: #6c757d; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-info-circle-fill"></i> Equipment Specifications</h6>
+                </div>
+                <div class="card-body">
+                    {% for category, fields in vessel_specs.items() %}
+                        {% if category != 'vessel_info' %}
+                            {% for field_name, field_value in fields.items() %}
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">{{ field_name }}</small>
+                                    <strong class="small">{{ field_value }}</strong>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Main Engine Alerts -->
+            <div class="card border-danger">
+                <div class="card-header" style="background-color: #dc3545; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Main Engine Alerts</h6>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                        <div class="list-group list-group-flush">
+                            {% for alert in alerts[:5] %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="small">
+                                        <strong>{{ alert.sampling_point_name or 'N/A' }}</strong><br>
+                                        <span class="text-muted">{{ alert.parameter_name }}</span><br>
+                                        <span class="badge bg-danger">{{ alert.measured_value }}</span>
+                                        <small class="text-muted">{{ alert.alert_date[:10] }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if alerts|length > 5 %}
+                        <p class="text-muted small mb-0 mt-2">Showing 5 of {{ alerts|length }} alerts</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="mb-0" style="color: #6e6e73;">
+                            <i class="bi bi-check-circle-fill" style="color: #0071e3;"></i> No active alerts
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Plotly.js for charts -->
+<script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}"></script>
+<script>
+// Vessel selector - reload page when vessel changes
+const vesselSelector = document.getElementById('vessel-selector');
+if (vesselSelector) {
+    vesselSelector.addEventListener('change', function() {
+        const newVesselId = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('vessel_id', newVesselId);
+        window.location.href = currentUrl.toString();
+    });
+}
+
+// Engine selection management
+const engineCheckboxes = document.querySelectorAll('.engine-checkbox');
+const selectAllBtn = document.getElementById('select-all');
+const deselectAllBtn = document.getElementById('deselect-all');
+
+selectAllBtn.addEventListener('click', () => {
+    engineCheckboxes.forEach(cb => cb.checked = true);
+    updateCharts();
+});
+
+deselectAllBtn.addEventListener('click', () => {
+    engineCheckboxes.forEach(cb => cb.checked = false);
+    updateCharts();
+});
+
+engineCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateCharts);
+});
+
+function getSelectedEngines() {
+    return Array.from(engineCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+}
+
+function updateCharts() {
+    const selectedEngines = getSelectedEngines();
+
+    // Update cooling water charts
+    updateCoolingCharts(selectedEngines);
+
+    // Update scavenge drain plots
+    updateScavengeTimeSeries(selectedEngines);
+    updateScavengeScatter(selectedEngines);
+
+    // Update lubricating oil table rows
+    const lubeRows = document.querySelectorAll('#lube-oil-table .engine-row');
+    lubeRows.forEach(row => {
+        const engine = row.dataset.engine;
+        if (selectedEngines.includes(engine)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Cooling water charts data and rendering
+{% if cooling_data %}
+const allCoolingData = {{ cooling_data | tojson }};
+const coolingCharts = {};
+
+function updateCoolingCharts(selectedEngines) {
+    const chartsContainer = document.getElementById('cooling-charts');
+    chartsContainer.innerHTML = '';
+
+    // Group data by parameter
+    const coolingByParam = {};
+
+    allCoolingData.forEach(m => {
+        if (selectedEngines.includes(m.engine_id)) {
+            if (!coolingByParam[m.parameter_name]) {
+                coolingByParam[m.parameter_name] = { unit: m.unit || '', engines: {} };
+            }
+            if (!coolingByParam[m.parameter_name].engines[m.engine_id]) {
+                coolingByParam[m.parameter_name].engines[m.engine_id] = { dates: [], values: [], statuses: [] };
+            }
+            coolingByParam[m.parameter_name].engines[m.engine_id].dates.push(m.measurement_date);
+            coolingByParam[m.parameter_name].engines[m.engine_id].values.push(m.value_numeric);
+            coolingByParam[m.parameter_name].engines[m.engine_id].statuses.push(m.ideal_status);
+        }
+    });
+
+    // Color mapping for engines
+    const engineColors = {
+        'ME1': '#dc3545',  // Red
+        'ME2': '#0d6efd'   // Blue
+    };
+
+    Object.keys(coolingByParam).forEach(paramName => {
+        const paramInfo = coolingByParam[paramName];
+        const paramData = paramInfo.engines;
+        const traces = [];
+        let allDates = [];
+
+        Object.keys(paramData).forEach(engineId => {
+            const data = paramData[engineId];
+            traces.push({
+                x: data.dates,
+                y: data.values,
+                mode: 'lines+markers',
+                name: engineId,
+                line: { color: engineColors[engineId] || '#6c757d' },
+                marker: {
+                    color: engineColors[engineId] || '#6c757d',
+                    size: 8
+                }
+            });
+            allDates = allDates.concat(data.dates.map(d => new Date(d)));
+        });
+
+        if (traces.length > 0) {
+            const div = document.createElement('div');
+            div.style.marginBottom = '20px';
+            chartsContainer.appendChild(div);
+
+            // Calculate date range
+            let minDate = new Date(Math.min(...allDates));
+            let maxDate = new Date(Math.max(...allDates));
+            if (minDate.toDateString() === maxDate.toDateString()) {
+                minDate = new Date(minDate.getTime() - 86400000);
+                maxDate = new Date(maxDate.getTime() + 86400000);
+            }
+
+            // Format last test date
+            let lastTestDate = new Date(Math.max(...allDates.filter(d => !isNaN(d))));
+            let lastTestDateStr = lastTestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            Plotly.newPlot(div, traces, {
+                title: `${paramName}, Last Test Date ${lastTestDateStr}`,
+                xaxis: {
+                    title: 'Date',
+                    tickformat: '%b %d, %Y',
+                    dtick: 86400000,
+                    range: [minDate, maxDate]
+                },
+                yaxis: { title: `${paramName} (${paramInfo.unit})` }
+            }, { responsive: true });
+
+            coolingCharts[paramName] = div;
+        }
+    });
+}
+
+// Initialize cooling charts
+updateCoolingCharts(getSelectedEngines());
+
+// Resize charts when switching to cooling water tab
+document.getElementById('cooling-tab').addEventListener('shown.bs.tab', function () {
+    Object.values(coolingCharts).forEach(chartDiv => {
+        Plotly.Plots.resize(chartDiv);
+    });
+});
+{% endif %}
+
+// Scavenge drain scatter plot
+{% if scavenge_data %}
+const allScavengeData = {{ scavenge_data | tojson }};
+
+// Cylinder selection management
+const cylinderCheckboxes = document.querySelectorAll('.cylinder-checkbox');
+const selectAllCylindersBtn = document.getElementById('select-all-cylinders');
+const deselectAllCylindersBtn = document.getElementById('deselect-all-cylinders');
+
+if (selectAllCylindersBtn) {
+    selectAllCylindersBtn.addEventListener('click', () => {
+        cylinderCheckboxes.forEach(cb => cb.checked = true);
+        updateScavengeTimeSeries(getSelectedEngines());
+        updateScavengeScatter(getSelectedEngines());
+    });
+}
+
+if (deselectAllCylindersBtn) {
+    deselectAllCylindersBtn.addEventListener('click', () => {
+        cylinderCheckboxes.forEach(cb => cb.checked = false);
+        updateScavengeTimeSeries(getSelectedEngines());
+        updateScavengeScatter(getSelectedEngines());
+    });
+}
+
+cylinderCheckboxes.forEach(cb => {
+    cb.addEventListener('change', () => {
+        updateScavengeTimeSeries(getSelectedEngines());
+        updateScavengeScatter(getSelectedEngines());
+    });
+});
+
+function getSelectedCylinders() {
+    return Array.from(cylinderCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => parseInt(cb.value.replace('CYL', '')));
+}
+
+function updateScavengeTimeSeries(selectedEngines) {
+    const selectedCylinders = getSelectedCylinders();
+
+    // Filter by selected engines and cylinders
+    const filteredData = allScavengeData.filter(m => {
+        if (!selectedEngines.includes(m.engine_id)) return false;
+
+        const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
+        if (cylinderMatch) {
+            const cylinderNum = parseInt(cylinderMatch[1]);
+            return selectedCylinders.includes(cylinderNum);
+        }
+        return true;
+    });
+
+    const ironData = filteredData.filter(m => m.parameter_name.includes('Iron'));
+    const bnData = filteredData.filter(m => m.parameter_name.includes('Base'));
+
+    const traces = [];
+
+    // Color mapping by engine and parameter type
+    // Cylinder 1 = darkest, progressively lighter for higher cylinders
+
+    // ME1 Iron - Blue shades
+    const getME1IronColor = (cylinderNum) => {
+        const blueShades = {
+            1: '#003366',  // Darkest blue
+            2: '#0056b3',
+            3: '#0d6efd',
+            4: '#4d94ff',
+            5: '#80b3ff',
+            6: '#b3d9ff',
+            7: '#cce5ff',
+            8: '#e6f2ff'
+        };
+        return blueShades[cylinderNum] || '#0d6efd';
+    };
+
+    // ME1 Base Number - Red shades
+    const getME1BNColor = (cylinderNum) => {
+        const redShades = {
+            1: '#990000',  // Darkest red
+            2: '#b30000',
+            3: '#dc3545',
+            4: '#ff6b7a',
+            5: '#ff9aa2',
+            6: '#ffcccc',
+            7: '#ffe0e0',
+            8: '#fff0f0'
+        };
+        return redShades[cylinderNum] || '#dc3545';
+    };
+
+    // ME2 Iron - Green shades
+    const getME2IronColor = (cylinderNum) => {
+        const greenShades = {
+            1: '#004d00',  // Darkest green
+            2: '#006600',
+            3: '#198754',
+            4: '#28a745',
+            5: '#5cb85c',
+            6: '#90ee90',
+            7: '#c8e6c9',
+            8: '#e8f5e9'
+        };
+        return greenShades[cylinderNum] || '#198754';
+    };
+
+    // ME2 Base Number - Orange shades
+    const getME2BNColor = (cylinderNum) => {
+        const orangeShades = {
+            1: '#cc5200',  // Darkest orange
+            2: '#e65c00',
+            3: '#ff6600',
+            4: '#ff8533',
+            5: '#ffa366',
+            6: '#ffcc99',
+            7: '#ffe0cc',
+            8: '#fff0e6'
+        };
+        return orangeShades[cylinderNum] || '#ff6600';
+    };
+
+    // Create traces for Iron - one trace per cylinder per engine
+    selectedEngines.forEach(engineId => {
+        selectedCylinders.forEach(cylinderNum => {
+            const cylinderIronData = ironData
+                .filter(m => {
+                    if (m.engine_id !== engineId) return false;
+                    const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
+                    if (cylinderMatch) {
+                        return parseInt(cylinderMatch[1]) === cylinderNum;
+                    }
+                    return false;
+                })
+                .sort((a, b) => new Date(a.measurement_date) - new Date(b.measurement_date));
+
+            if (cylinderIronData.length > 0) {
+                traces.push({
+                    x: cylinderIronData.map(m => m.measurement_date),
+                    y: cylinderIronData.map(m => m.value_numeric),
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: `${engineId} Cyl ${cylinderNum} - Iron`,
+                    line: { color: engineId === 'ME1' ? getME1IronColor(cylinderNum) : getME2IronColor(cylinderNum), width: 2 },
+                    marker: { size: 6 },
+                    yaxis: 'y1'
+                });
+            }
+        });
+    });
+
+    // Create traces for Base Number - one trace per cylinder per engine
+    selectedEngines.forEach(engineId => {
+        selectedCylinders.forEach(cylinderNum => {
+            const cylinderBNData = bnData
+                .filter(m => {
+                    if (m.engine_id !== engineId) return false;
+                    const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
+                    if (cylinderMatch) {
+                        return parseInt(cylinderMatch[1]) === cylinderNum;
+                    }
+                    return false;
+                })
+                .sort((a, b) => new Date(a.measurement_date) - new Date(b.measurement_date));
+
+            if (cylinderBNData.length > 0) {
+                traces.push({
+                    x: cylinderBNData.map(m => m.measurement_date),
+                    y: cylinderBNData.map(m => m.value_numeric),
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: `${engineId} Cyl ${cylinderNum} - Base Number`,
+                    line: { color: engineId === 'ME1' ? getME1BNColor(cylinderNum) : getME2BNColor(cylinderNum), width: 2 },
+                    marker: { size: 6, symbol: 'square' },
+                    yaxis: 'y2'
+                });
+            }
+        });
+    });
+
+    if (traces.length > 0) {
+        // Calculate date range
+        let allDates = [];
+        traces.forEach(trace => {
+            if (trace.x) allDates = allDates.concat(trace.x.map(d => new Date(d)));
+        });
+        let minDate = new Date(Math.min(...allDates));
+        let maxDate = new Date(Math.max(...allDates));
+        if (minDate.toDateString() === maxDate.toDateString()) {
+            minDate = new Date(minDate.getTime() - 86400000);
+            maxDate = new Date(maxDate.getTime() + 86400000);
+        }
+
+        // Format last test date for title
+        let lastTestDate = new Date(Math.max(...allDates.filter(d => !isNaN(d))));
+        let lastTestDateStr = lastTestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        Plotly.newPlot('scavenge-timeseries', traces, {
+            title: `Scavenge Drain Trends, Last Test Date ${lastTestDateStr}`,
+            xaxis: { tickformat: '%b %d, %Y', dtick: 86400000, range: [minDate, maxDate] },
+            yaxis: {
+                title: 'Iron in Oil (mg/L)',
+                side: 'left'
+            },
+            yaxis2: {
+                title: 'Base Number (BN)',
+                overlaying: 'y',
+                side: 'right'
+            },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                x: 0,
+                y: -0.2,
+                xanchor: 'left',
+                yanchor: 'top'
+            },
+            margin: {
+                b: 120
+            },
+            height: 500
+        }, { responsive: true });
+    } else {
+        document.getElementById('scavenge-timeseries').innerHTML =
+            '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No data to display for selected engines and cylinders.</div>';
+    }
+}
+
+function updateScavengeScatter(selectedEngines) {
+    const selectedCylinders = getSelectedCylinders();
+
+    // Filter by selected engines and cylinders
+    const filteredData = allScavengeData.filter(m => {
+        if (!selectedEngines.includes(m.engine_id)) return false;
+
+        // Extract cylinder number from sampling point name (e.g., "SD1 ME Unit 1" -> 1)
+        const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
+        if (cylinderMatch) {
+            const cylinderNum = parseInt(cylinderMatch[1]);
+            return selectedCylinders.includes(cylinderNum);
+        }
+        return true; // Include if no cylinder number found
+    });
+
+    const ironData = filteredData.filter(m => m.parameter_name.includes('Iron'));
+    const bnData = filteredData.filter(m => m.parameter_name.includes('Base'));
+
+    // Group by engine and cylinder
+    const traces = [];
+    const engineColors = {
+        'ME1': '#dc3545',  // Red
+        'ME2': '#0d6efd'   // Blue
+    };
+
+    selectedEngines.forEach(engineId => {
+        const engineIronData = ironData.filter(m => m.engine_id === engineId);
+        const engineBNData = bnData.filter(m => m.engine_id === engineId);
+
+        const scatterPoints = { dates: [], iron: [], bn: [], cylinders: [] };
+        engineIronData.forEach(iron => {
+            const matchingBN = engineBNData.find(bn =>
+                bn.measurement_date === iron.measurement_date &&
+                bn.sampling_point_name === iron.sampling_point_name
+            );
+            if (matchingBN) {
+                const cylinderMatch = iron.sampling_point_name.match(/Unit (\d+)/);
+                const cylinderNum = cylinderMatch ? cylinderMatch[1] : 'N/A';
+
+                scatterPoints.dates.push(iron.measurement_date);
+                scatterPoints.iron.push(iron.value_numeric);
+                scatterPoints.bn.push(matchingBN.value_numeric);
+                scatterPoints.cylinders.push(cylinderNum);
+            }
+        });
+
+        if (scatterPoints.iron.length > 0) {
+            traces.push({
+                x: scatterPoints.bn,
+                y: scatterPoints.iron,
+                mode: 'markers',
+                type: 'scatter',
+                name: engineId,
+                marker: {
+                    size: 10,
+                    color: engineColors[engineId] || '#6c757d'
+                },
+                text: scatterPoints.dates.map((d, idx) =>
+                    engineId + ' Cyl ' + scatterPoints.cylinders[idx] + ' - Date: ' + d
+                )
+            });
+        }
+    });
+
+    if (traces.length > 0) {
+        Plotly.newPlot('scavenge-scatter', traces, {
+            title: 'Scavenge Drain Oil: Iron vs Base Number',
+            xaxis: { title: 'Base Number (BN)' },
+            yaxis: { title: 'Iron in Oil (mg/L)' },
+            height: 500
+        }, { responsive: true });
+    } else {
+        document.getElementById('scavenge-scatter').innerHTML =
+            '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No data to display for selected engines and cylinders.</div>';
+    }
+}
+
+// Initialize scavenge plots
+updateScavengeTimeSeries(getSelectedEngines());
+updateScavengeScatter(getSelectedEngines());
+
+// Resize plots when switching to scavenge drain tab
+document.getElementById('scavenge-tab').addEventListener('shown.bs.tab', function () {
+    Plotly.Plots.resize('scavenge-timeseries');
+    Plotly.Plots.resize('scavenge-scatter');
+});
+{% endif %}
+
+// Initialize table filtering
+updateCharts();
+</script>
+{% endblock %}

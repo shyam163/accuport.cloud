@@ -1,75 +1,173 @@
 {% extends "base.html" %}
 
 {% block title %}Login - Accuport Dashboard{% endblock %}
+{% block meta_description %}Sign in to Accuport.cloud to access your marine vessel chemical testing dashboard. Monitor and manage water quality, engine parameters, and compliance for your fleet.{% endblock %}
+
+{% block extra_head %}
+<style>
+    body {
+        overflow: hidden;
+    }
+
+    #particleCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
+
+    .login-container {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: saturate(180%) blur(20px);
+        border: 1px solid rgba(232, 232, 237, 0.8);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-icon {
+        font-size: 3.5rem;
+        background: linear-gradient(135deg, #0071e3 0%, #0077ed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .login-title {
+        font-size: 32px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: #1d1d1f;
+        margin-top: 12px;
+    }
+
+    .login-subtitle {
+        font-size: 15px;
+        color: #6e6e73;
+        margin-top: 4px;
+    }
+
+    .login-form .form-label {
+        font-weight: 500;
+        font-size: 14px;
+        color: #1d1d1f;
+    }
+
+    .login-form .input-group-text {
+        background: #f5f5f7;
+        border: 1px solid #e8e8ed;
+        color: #6e6e73;
+    }
+
+    .login-form .form-control {
+        border-left: none;
+        font-size: 15px;
+        padding: 12px 16px;
+    }
+
+    .login-form .form-control:focus {
+        border-color: #0071e3;
+        box-shadow: none;
+    }
+
+    .login-form .form-control:focus + .input-group-text {
+        border-color: #0071e3;
+    }
+
+    .btn-login {
+        padding: 14px 28px;
+        font-size: 17px;
+        font-weight: 500;
+        background: #0071e3;
+        border: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-login:hover {
+        background: #0077ed;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+    }
+
+    .login-footer {
+        font-size: 13px;
+        color: #86868b;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-5">
-            <div class="card shadow">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <i class="bi bi-water text-primary" style="font-size: 3rem;"></i>
-                        <h2 class="mt-2">Accuport.cloud</h2>
-                        <p class="text-muted">Marine Onboard Chemical Test Solutions</p>
-                    </div>
+<!-- Animated Background Canvas -->
+<canvas id="particleCanvas"></canvas>
 
-                    <form method="POST" action="{{ url_for('login') }}">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-person"></i></span>
-                                <input type="text"
-                                       class="form-control"
-                                       id="username"
-                                       name="username"
-                                       placeholder="Enter username"
-                                       required
-                                       autofocus>
-                            </div>
+<!-- Login Container -->
+<div class="login-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+                <div class="card login-card border-0">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-water login-icon"></i>
+                            <h1 class="login-title">Accuport.cloud</h1>
+                            <p class="login-subtitle">Marine Onboard Chemical Test Solutions</p>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                                <input type="password"
-                                       class="form-control"
-                                       id="password"
-                                       name="password"
-                                       placeholder="Enter password"
-                                       required>
+                        <form method="POST" action="{{ url_for('login') }}" class="login-form">
+                            <div class="mb-4">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <input type="text"
+                                           class="form-control"
+                                           id="username"
+                                           name="username"
+                                           placeholder="Enter your username"
+                                           required
+                                           autofocus>
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                </div>
                             </div>
-                        </div>
 
-                        <button type="submit" class="btn btn-primary w-100 mb-3">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
-                        </button>
-                    </form>
+                            <div class="mb-4">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <input type="password"
+                                           class="form-control"
+                                           id="password"
+                                           name="password"
+                                           placeholder="Enter your password"
+                                           required>
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                </div>
+                            </div>
 
-                    <hr>
+                            <button type="submit" class="btn btn-primary btn-login w-100 mb-3">
+                                Sign In
+                            </button>
+                        </form>
 
-                    <div class="text-center">
-                        <small class="text-muted">
+                        <hr style="border-color: #e8e8ed; opacity: 0.5;">
+
+                        <div class="text-center login-footer">
                             <i class="bi bi-info-circle"></i>
                             Contact your administrator for login credentials
-                        </small>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Demo credentials info -->
-            <div class="card mt-3 bg-light">
-                <div class="card-body">
-                    <h6 class="card-title"><i class="bi bi-key"></i> Demo Credentials</h6>
-                    <small>
-                        <strong>Vessel Manager:</strong> vm1 / password123<br>
-                        <strong>Fleet Manager:</strong> fm1 / password123<br>
-                        <strong>Admin:</strong> admin / admin123
-                    </small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Particle Animation Script -->
+<script src="{{ url_for('static', filename='js/login-animation.js') }}"></script>
 {% endblock %}

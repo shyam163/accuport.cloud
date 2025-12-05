@@ -20,6 +20,8 @@
                     <i class="bi bi-droplet-half text-secondary"></i>
                 {% elif system_type == 'Ballast Water' %}
                     <i class="bi bi-water text-success"></i>
+                {% elif system_type == 'EGCS' %}
+                    <i class="bi bi-cloud text-muted"></i>
                 {% endif %}
                 {{ system_type }} Analysis
             </h2>
@@ -27,6 +29,9 @@
         </div>
     </div>
 
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-9 mb-4">
     <!-- Date Range Filter -->
     <div class="row mb-4">
         <div class="col-12">
@@ -65,6 +70,7 @@
                     {% if system_type == 'Potable Water' %}bg-info
                     {% elif system_type == 'Treated Sewage Water' %}bg-secondary
                     {% elif system_type == 'Ballast Water' %}bg-success
+                    {% elif system_type == 'EGCS' %}bg-dark
                     {% endif %} text-white">
                     <h5 class="mb-0"><i class="bi bi-table"></i> {{ system_type }} Parameters</h5>
                 </div>
@@ -129,25 +135,92 @@
             </div>
         </div>
     </div>
+        </div>
 
-    <!-- Export Options -->
-    {% if water_data %}
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
+        <!-- Right Sidebar -->
+        <div class="col-md-3 mb-4">
+            <!-- Vessel Selector (hidden for vessel users) -->
+            {% if not current_user.is_vessel_user() %}
+            <div class="card mb-3">
                 <div class="card-body">
-                    <h6><i class="bi bi-download"></i> Export Data</h6>
-                    <p class="text-muted">Download the displayed data in various formats (feature coming soon)</p>
-                    <button class="btn btn-outline-primary btn-sm" disabled>
-                        <i class="bi bi-file-earmark-excel"></i> Export to Excel
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm" disabled>
-                        <i class="bi bi-file-earmark-pdf"></i> Export to PDF
-                    </button>
+                    <h6 class="card-title"><i class="bi bi-ship"></i> Select Vessel</h6>
+                    <select class="form-select" id="vessel-selector">
+                        {% for v in vessels %}
+                        <option value="{{ v.id }}" {% if v.id == vessel.id %}selected{% endif %}>
+                            {{ v.vessel_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-muted small mt-2 mb-0">{{ vessel.vessel_id }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Vessel Equipment Specifications -->
+            {% if vessel_specs %}
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: #6c757d; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-info-circle-fill"></i> Equipment Specifications</h6>
+                </div>
+                <div class="card-body">
+                    {% for category, fields in vessel_specs.items() %}
+                        {% if category != 'vessel_info' %}
+                            {% for field_name, field_value in fields.items() %}
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">{{ field_name }}</small>
+                                    <strong class="small">{{ field_value }}</strong>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Water System Alerts -->
+            <div class="card border-danger">
+                <div class="card-header" style="background-color: #dc3545; color: white;">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> {{ system_type }} Alerts</h6>
+                </div>
+                <div class="card-body">
+                    {% if alerts %}
+                        <div class="list-group list-group-flush">
+                            {% for alert in alerts[:5] %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="small">
+                                        <strong>{{ alert.sampling_point_name or 'N/A' }}</strong><br>
+                                        <span class="text-muted">{{ alert.parameter_name }}</span><br>
+                                        <span class="badge bg-danger">{{ alert.measured_value }}</span>
+                                        <small class="text-muted">{{ alert.alert_date[:10] }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="mb-0" style="color: #6e6e73;">
+                            <i class="bi bi-check-circle-fill" style="color: #0071e3;"></i> No active alerts
+                        </p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Vessel selector - reload page when vessel changes
+const vesselSelector = document.getElementById('vessel-selector');
+if (vesselSelector) {
+    vesselSelector.addEventListener('change', function() {
+        const newVesselId = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('vessel_id', newVesselId);
+        window.location.href = currentUrl.toString();
+    });
+}
+</script>
 {% endblock %}

@@ -42,6 +42,10 @@ class User(UserMixin):
         """Check if user is an admin"""
         return self.role == 'admin'
 
+    def is_vessel_user(self):
+        """Check if user is a vessel-specific user"""
+        return self.role == 'vessel_user'
+
     def can_access_vessel(self, vessel_id):
         """Check if user can access a specific vessel"""
         return vessel_id in self.get_accessible_vessels()

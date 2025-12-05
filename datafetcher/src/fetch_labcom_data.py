@@ -110,14 +110,12 @@ class LabcomDataFetcher:
 
         # Store measurements
         total_stored = 0
-        for account_id, measurements in all_measurements.items():
-            if measurements:
-                logger.info(f"Storing {len(measurements)} measurements for account {account_id}...")
-                count = self.data_manager.store_measurements(
-                    vessel_id=vessel_db_id,
-                    measurements=measurements
-                )
-                total_stored += count
+        if all_measurements:
+            logger.info(f"Storing {len(all_measurements)} measurements...")
+            total_stored = self.data_manager.store_measurements(
+                vessel_id=vessel_db_id,
+                measurements=all_measurements
+            )
 
         logger.info(f"✓ Stored {total_stored} new measurements")
 
