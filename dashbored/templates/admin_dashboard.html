@@ -157,19 +157,18 @@
                         <div class="card-body">
                             <form action="{{ url_for('api_create_vessel') }}" method="POST">
                                 <div class="mb-3">
-                                    <label class="form-label">Vessel ID Code</label>
-                                    <input type="text" class="form-control" name="vessel_id_code" placeholder="e.g., MV001" required>
-                                </div>
-                                <div class="mb-3">
                                     <label class="form-label">Vessel Name</label>
-                                    <input type="text" class="form-control" name="vessel_name" placeholder="e.g., MV Accu Queen" required>
+                                    <input type="text" class="form-control" id="vessel_name_input" name="vessel_name" placeholder="e.g., MV Accu Queen" required>
+                                    <div class="form-text">
+                                        <small>Auto-generated Vessel ID: <strong id="generated_vessel_id" class="text-primary">(type vessel name)</strong></small>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Contact Email</label>
                                     <input type="email" class="form-control" name="email">
                                 </div>
                                 <div class="alert alert-info small">
-                                    <i class="bi bi-info-circle"></i> An authentication token will be automatically generated for this vessel.
+                                    <i class="bi bi-info-circle"></i> Vessel ID and authentication token will be automatically generated.
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="bi bi-plus-circle"></i> Create Vessel
@@ -193,7 +192,6 @@
                                             <th>Vessel ID</th>
                                             <th>Vessel Name</th>
                                             <th>Email</th>
-                                            <th>Auth Token</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -204,17 +202,17 @@
                                             <td>{{ vessel.vessel_name }}</td>
                                             <td>{{ vessel.email or 'N/A' }}</td>
                                             <td>
-                                                <code class="small">{{ vessel.auth_token[:20] }}...</code>
-                                                <button class="btn btn-sm btn-outline-secondary" 
-                                                        onclick="copyToClipboard('{{ vessel.auth_token }}')">
-                                                    <i class="bi bi-clipboard"></i>
-                                                </button>
-                                            </td>
-                                            <td>
                                                 <a href="{{ url_for('admin_edit_vessel_details', vessel_id=vessel.id) }}"
                                                    class="btn btn-sm btn-outline-primary">
                                                     <i class="bi bi-gear"></i> Edit Specs
                                                 </a>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger ms-1 delete-vessel-btn"
+                                                        data-vessel-id="{{ vessel.id }}"
+                                                        data-vessel-string-id="{{ vessel.vessel_id }}"
+                                                        data-vessel-name="{{ vessel.vessel_name }}">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </button>
                                             </td>
                                         </tr>
                                         {% endfor %}
@@ -290,9 +288,12 @@
                                     <select class="form-select" name="vessel_manager_id" required>
                                         <option value="">-- Select Vessel Manager --</option>
                                         {% for vm in unassigned_managers %}
-                                        <option value="{{ vm.id }}">{{ vm.full_name }}</option>
+                                        <option value="{{ vm.id }}">
+                                            {{ vm.full_name }}{% if vm.current_fleet_manager %} (Currently: {{ vm.current_fleet_manager }}){% endif %}
+                                        </option>
                                         {% endfor %}
                                     </select>
+                                    <small class="text-muted">You can reassign vessel managers to different fleet managers</small>
                                 </div>
                                 <button type="submit" class="btn btn-warning w-100">
                                     <i class="bi bi-check-circle"></i> Assign Hierarchy
@@ -342,6 +343,55 @@
     </div>
 </div>
 
+<!-- Delete Vessel Confirmation Modal -->
+<div class="modal fade" id="deleteVesselModal" tabindex="-1" aria-labelledby="deleteVesselModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteVesselModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Delete Vessel
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Warning:</strong> This action cannot be undone! Deleting a vessel will remove:
+                    <ul class="mb-0 mt-2">
+                        <li>All vessel data and measurements</li>
+                        <li>All vessel specifications</li>
+                        <li>All user assignments</li>
+                        <li>All authentication tokens</li>
+                    </ul>
+                </div>
+
+                <p><strong>Vessel to delete:</strong></p>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Name:</strong> <span id="delete-vessel-name"></span></p>
+                        <p class="mb-0"><strong>ID:</strong> <code id="delete-vessel-string-id"></code></p>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="confirm-vessel-id" class="form-label">
+                        <strong>Type the vessel ID exactly to confirm deletion:</strong>
+                    </label>
+                    <input type="text" class="form-control" id="confirm-vessel-id" placeholder="Enter vessel ID to confirm">
+                    <small class="form-text text-muted">This is case-sensitive and must match exactly.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn" disabled>
+                    <i class="bi bi-trash"></i> Delete Vessel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function() {
@@ -350,6 +400,152 @@ function copyToClipboard(text) {
         console.error('Could not copy text: ', err);
     });
 }
+
+// Auto-generate vessel ID preview from vessel name
+function normalizeVesselNameToId(vesselName) {
+    if (!vesselName) return '(type vessel name)';
+
+    // Convert to lowercase and remove dots
+    let normalized = vesselName.toLowerCase().replace(/\./g, '');
+    // Replace one or more consecutive spaces with a single underscore
+    normalized = normalized.replace(/\s+/g, '_');
+    // Remove leading/trailing underscores
+    normalized = normalized.replace(/^_+|_+$/g, '');
+
+    return normalized || '(type vessel name)';
+}
+
+// Update vessel ID preview as user types
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab persistence - remember which tab was active
+    const adminTabs = document.getElementById('adminTabs');
+    if (adminTabs) {
+        // Restore active tab from localStorage
+        const savedTab = localStorage.getItem('adminActiveTab');
+        if (savedTab) {
+            const tabButton = document.querySelector(`button[data-bs-target="${savedTab}"]`);
+            if (tabButton) {
+                const tab = new bootstrap.Tab(tabButton);
+                tab.show();
+            }
+        }
+
+        // Save active tab to localStorage when clicking tabs
+        adminTabs.addEventListener('click', function(e) {
+            if (e.target.dataset.bsTarget) {
+                localStorage.setItem('adminActiveTab', e.target.dataset.bsTarget);
+            }
+        });
+    }
+
+    // Save current tab before any form submission
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const activeTab = document.querySelector('.nav-link.active');
+            if (activeTab && activeTab.dataset.bsTarget) {
+                localStorage.setItem('adminActiveTab', activeTab.dataset.bsTarget);
+            }
+        });
+    });
+
+    const vesselNameInput = document.getElementById('vessel_name_input');
+    const vesselIdDisplay = document.getElementById('generated_vessel_id');
+
+    if (vesselNameInput && vesselIdDisplay) {
+        vesselNameInput.addEventListener('input', function() {
+            const generatedId = normalizeVesselNameToId(this.value);
+            vesselIdDisplay.textContent = generatedId;
+        });
+    }
+
+    // Delete vessel functionality
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteVesselModal'));
+    const confirmInput = document.getElementById('confirm-vessel-id');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const deleteVesselNameSpan = document.getElementById('delete-vessel-name');
+    const deleteVesselIdSpan = document.getElementById('delete-vessel-string-id');
+
+    let vesselToDelete = null;
+
+    // Handle delete button clicks
+    document.querySelectorAll('.delete-vessel-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            vesselToDelete = {
+                id: this.dataset.vesselId,
+                stringId: this.dataset.vesselStringId,
+                name: this.dataset.vesselName
+            };
+
+            // Update modal with vessel info
+            deleteVesselNameSpan.textContent = vesselToDelete.name;
+            deleteVesselIdSpan.textContent = vesselToDelete.stringId;
+
+            // Reset confirmation input
+            confirmInput.value = '';
+            confirmDeleteBtn.disabled = true;
+
+            // Show modal
+            deleteModal.show();
+        });
+    });
+
+    // Enable/disable delete button based on confirmation input
+    confirmInput.addEventListener('input', function() {
+        if (this.value === vesselToDelete.stringId) {
+            confirmDeleteBtn.disabled = false;
+        } else {
+            confirmDeleteBtn.disabled = true;
+        }
+    });
+
+    // Handle confirm delete
+    confirmDeleteBtn.addEventListener('click', function() {
+        if (!vesselToDelete) return;
+
+        // Disable button and show loading state
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Deleting...';
+
+        // Make AJAX request to delete vessel
+        fetch(`/admin/vessels/delete/${vesselToDelete.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reload page
+                deleteModal.hide();
+                alert(`Vessel "${vesselToDelete.name}" has been deleted successfully.`);
+                // Ensure current tab is saved before reload
+                const activeTab = document.querySelector('.nav-link.active');
+                if (activeTab && activeTab.dataset.bsTarget) {
+                    localStorage.setItem('adminActiveTab', activeTab.dataset.bsTarget);
+                }
+                window.location.reload();
+            } else {
+                alert(`Error deleting vessel: ${data.error}`);
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete Vessel';
+            }
+        })
+        .catch(error => {
+            alert(`Error deleting vessel: ${error.message}`);
+            confirmDeleteBtn.disabled = false;
+            confirmDeleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete Vessel';
+        });
+    });
+
+    // Reset modal when closed
+    document.getElementById('deleteVesselModal').addEventListener('hidden.bs.modal', function() {
+        confirmInput.value = '';
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete Vessel';
+        vesselToDelete = null;
+    });
+});
 </script>
 
 {% endblock %}

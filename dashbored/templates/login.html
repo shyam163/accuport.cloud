@@ -34,26 +34,11 @@
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
     }
 
-    .login-icon {
-        font-size: 3.5rem;
-        background: linear-gradient(135deg, #0071e3 0%, #0077ed 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
-    .login-title {
-        font-size: 32px;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        color: #1d1d1f;
-        margin-top: 12px;
-    }
-
-    .login-subtitle {
-        font-size: 15px;
-        color: #6e6e73;
-        margin-top: 4px;
+    .login-logo {
+        max-width: 280px;
+        height: auto;
+        margin: 0 auto;
+        display: block;
     }
 
     .login-form .form-label {
@@ -117,9 +102,7 @@
                 <div class="card login-card border-0">
                     <div class="card-body p-5">
                         <div class="text-center mb-4">
-                            <i class="bi bi-water login-icon"></i>
-                            <h1 class="login-title">Accuport.cloud</h1>
-                            <p class="login-subtitle">Marine Onboard Chemical Test Solutions</p>
+                            <img src="{{ url_for('static', filename='img/logo.jpg') }}" alt="Accuport Logo" class="login-logo">
                         </div>
 
                         <form method="POST" action="{{ url_for('login') }}" class="login-form">
@@ -159,7 +142,7 @@
 
                         <div class="text-center login-footer">
                             <i class="bi bi-info-circle"></i>
-                            Contact your administrator for login credentials
+                            Contact your administrator for login credentials at info@accuport.cloud
                         </div>
                     </div>
                 </div>

@@ -1,9 +1,9 @@
 """
 Configuration Loader
-Loads vessel configurations from YAML file
+Loads vessel configurations from SQLite database instead of YAML file
 """
-import yaml
-from typing import List, Dict
+import sqlite3
+from typing import List, Dict, Optional
 from pathlib import Path
 
 
@@ -15,6 +15,7 @@ class VesselConfig:
         self.vessel_name = config_dict.get('vessel_name')
         self.email = config_dict.get('email')
         self.auth_token = config_dict.get('auth_token')
+        # sampling_points kept for compatibility but not used by sync
         self.sampling_points = config_dict.get('sampling_points', [])
 
     def __repr__(self):
@@ -22,31 +23,69 @@ class VesselConfig:
 
 
 class ConfigLoader:
-    """Load and manage vessel configurations"""
+    """Load and manage vessel configurations from database"""
 
-    def __init__(self, config_file: str = '../config/vessels_config.yaml'):
+    def __init__(self, config_file: str = '../data/accubase.sqlite'):
         """
         Initialize config loader
 
         Args:
-            config_file: Path to YAML configuration file
+            config_file: Path to SQLite database file (changed from YAML)
+                        For backward compatibility, accepts YAML path but will
+                        look for accubase.sqlite in the same directory structure
         """
-        self.config_file = config_file
+        # Handle both explicit database paths and YAML paths (for compatibility)
+        if config_file.endswith('.yaml'):
+            # Convert YAML path to database path
+            # ../config/vessels_config.yaml -> ../data/accubase.sqlite
+            config_path = Path(config_file)
+            project_root = config_path.parent.parent
+            self.db_path = project_root / 'data' / 'accubase.sqlite'
+        else:
+            self.db_path = Path(config_file)
+
         self.vessels: List[VesselConfig] = []
         self.load_config()
 
     def load_config(self):
-        """Load configuration from YAML file"""
-        config_path = Path(self.config_file)
+        """Load configuration from SQLite database"""
+        if not self.db_path.exists():
+            raise FileNotFoundError(f"Database file not found: {self.db_path}")
 
-        if not config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {self.config_file}")
+        try:
+            conn = sqlite3.connect(str(self.db_path))
+            conn.row_factory = sqlite3.Row  # Access columns by name
+            cursor = conn.cursor()
 
-        with open(config_path, 'r') as f:
-            config_data = yaml.safe_load(f)
+            # Query all vessels with their configuration
+            cursor.execute('''
+                SELECT
+                    vessel_id,
+                    vessel_name,
+                    email,
+                    auth_token
+                FROM vessels
+                WHERE auth_token IS NOT NULL
+                ORDER BY vessel_name
+            ''')
 
-        vessels_data = config_data.get('vessels', [])
-        self.vessels = [VesselConfig(v) for v in vessels_data]
+            rows = cursor.fetchall()
+
+            # Convert rows to VesselConfig objects
+            for row in rows:
+                vessel_dict = {
+                    'vessel_id': row['vessel_id'],
+                    'vessel_name': row['vessel_name'],
+                    'email': row['email'] or 'Accu-Port@outlook.com',
+                    'auth_token': row['auth_token'],
+                    'sampling_points': []  # Not used, kept for compatibility
+                }
+                self.vessels.append(VesselConfig(vessel_dict))
+
+            conn.close()
+
+        except sqlite3.Error as e:
+            raise Exception(f"Database error loading vessel configurations: {e}")
 
     def get_all_vessels(self) -> List[VesselConfig]:
         """Get all vessel configurations"""
@@ -97,13 +136,19 @@ SAMPLING_POINT_MAP = {
 
 if __name__ == "__main__":
     # Test config loader
-    loader = ConfigLoader()
+    import sys
+    db_path = sys.argv[1] if len(sys.argv) > 1 else '../data/accubase.sqlite'
 
-    print(f"Loaded {len(loader.vessels)} vessel(s):\n")
+    try:
+        loader = ConfigLoader(db_path)
+        print(f"Loaded {len(loader.vessels)} vessel(s) from database:\n")
 
-    for vessel in loader.get_all_vessels():
-        print(f"Vessel ID: {vessel.vessel_id}")
-        print(f"Name: {vessel.vessel_name}")
-        print(f"Email: {vessel.email}")
-        print(f"Sampling Points: {', '.join(vessel.sampling_points)}")
-        print()
+        for vessel in loader.get_all_vessels():
+            print(f"Vessel ID: {vessel.vessel_id}")
+            print(f"Name: {vessel.vessel_name}")
+            print(f"Email: {vessel.email}")
+            print(f"Has Auth Token: {'Yes' if vessel.auth_token else 'No'}")
+            print()
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)

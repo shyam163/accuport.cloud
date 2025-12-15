@@ -6,22 +6,63 @@
     <meta name="description" content="{% block meta_description %}Accuport.cloud - Professional marine onboard chemical test solutions dashboard for vessel and fleet managers. Track and analyze boiler water, engine oil, and water treatment parameters.{% endblock %}">
     <title>{% block title %}Accuport Dashboard{% endblock %}</title>
 
-    <!-- DNS prefetch and preconnect for CDN (Bootstrap JS only) -->
+    <!-- DNS prefetch and preconnect for CDN -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Nunito Sans Font for Lux Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@200;300;400;600;700&display=swap" rel="stylesheet">
 
     <!-- Preload critical font files for instant icon rendering -->
     <link rel="preload" href="{{ url_for('static', filename='fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
 
-    <!-- Bootstrap 5 CSS - Local (faster loading) -->
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Bootstrap 5 CSS - Lux Theme -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=lux_20251210" rel="stylesheet">
 
     <!-- Bootstrap Icons - Local with font-display swap -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}?v=20251124b">
+    <!-- Custom themes disabled for Lux testing -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}"> -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}?v=20251124b"> -->
+
+    <style>
+        /* Override Bootstrap Lux theme uppercase transformation for navbar brand */
+        .navbar-brand {
+            text-transform: none !important;
+        }
+
+        /* Navbar minilogo styling */
+        .navbar-brand img {
+            height: 30px;
+            width: auto;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        /* Sync modal error message wrapping */
+        #syncAllResultsBody td {
+            word-wrap: break-word;
+            word-break: break-word;
+            max-width: 400px;
+            white-space: normal;
+        }
+        #syncAllResultsBody td:first-child {
+            max-width: 150px;
+        }
+        #syncAllResultsBody td:nth-child(2) {
+            max-width: 80px;
+            text-align: center;
+        }
+        #syncAllResultsBody td:nth-child(3) {
+            max-width: 400px;
+        }
+        .modal-dialog {
+            max-width: 800px;
+        }
+    </style>
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -30,8 +71,8 @@
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="bi bi-water"></i> Accuport.cloud
+            <a class="navbar-brand" href="{{ url_for('dashboard', vessel_id=session.get('selected_vessel_id')) }}">
+                <img src="{{ url_for('static', filename='img/minilogo.jpg') }}" alt="AccuPort Logo"> AccuPort.Cloud
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -41,7 +82,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                        <a class="nav-link" href="{{ url_for('dashboard', vessel_id=session.get('selected_vessel_id')) }}">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
@@ -72,22 +113,32 @@
                             <i class="bi bi-gear"></i> Equipment
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('boiler_water_multi') }}"><i class="bi bi-droplet-fill text-primary"></i> Boiler Water</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('boiler_water_multi', vessel_id=session.get('selected_vessel_id')) }}"><i class="bi bi-droplet-fill text-primary"></i> Boiler Water</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('main_engines_multi') }}"><i class="bi bi-gear-fill text-primary"></i> Main Engines</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main_engines_multi', vessel_id=session.get('selected_vessel_id')) }}"><i class="bi bi-gear-fill text-primary"></i> Main Engines</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('aux_engines') }}"><i class="bi bi-gear text-success"></i> Auxiliary Engines</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('aux_engines', vessel_id=session.get('selected_vessel_id')) }}"><i class="bi bi-gear text-success"></i> Auxiliary Engines</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('potable_water') }}">Potable Water</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('treated_sewage') }}">Treated Sewage</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('ballast_water') }}">Ballast Water</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('egcs') }}"><i class="bi bi-cloud"></i> EGCS</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('potable_water', vessel_id=session.get('selected_vessel_id')) }}">Potable Water</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('treated_sewage', vessel_id=session.get('selected_vessel_id')) }}">Treated Sewage</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ballast_water', vessel_id=session.get('selected_vessel_id')) }}">Ballast Water</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('egcs', vessel_id=session.get('selected_vessel_id')) }}"><i class="bi bi-cloud"></i> EGCS</a></li>
                         </ul>
                     </li>
                     {% endif %}
                 </ul>
 
                 <ul class="navbar-nav">
+                    {% if session.get("selected_vessel_id") %}
+                    <li class="nav-item me-2">
+                        <button id="syncButton" class="btn btn-outline-sync-primary" onclick="syncData()">
+                            <i class="bi bi-arrow-repeat"></i> Sync
+                        </button>
+                        <button id="syncAllButton" class="btn btn-outline-sync-primary ms-2" onclick="syncAllData()">
+                            <i class="bi bi-cloud-arrow-up"></i> Sync All
+                        </button>
+                    </li>
+                    {% endif %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i> {{ current_user.full_name }}
@@ -135,5 +186,139 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" defer></script>
 
     {% block extra_scripts %}{% endblock %}
+<script>
+    async function syncData() {
+        const btn = document.getElementById('syncButton');
+        if (!btn) return;
+        const originalHTML = btn.innerHTML;
+        
+        // Disable button and show spinner
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...';
+        
+        try {
+            const response = await fetch('/sync_vessel_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Show success
+                btn.classList.remove('btn-outline-light');
+                btn.classList.add('btn-success');
+                btn.innerHTML = '<i class="bi bi-check-lg"></i> Done';
+                
+                // Reload page
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert('Sync failed: ' + data.message);
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred during sync.');
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+<!-- Sync Results Modal -->
+<div class="modal fade" id="syncResultsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Sync All Vessels</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="syncAllProgress" class="text-center py-4">
+             <div class="spinner-border text-primary" role="status"></div>
+             <p class="mt-2">Syncing all vessels... This may take a moment.</p>
+        </div>
+        <div id="syncAllResults" style="display:none;">
+            <div class="alert alert-info">
+                <strong>Status:</strong> <span id="syncAllStatusText">Completed</span>
+            </div>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Vessel</th>
+                        <th>Status</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody id="syncAllResultsBody">
+                </tbody>
+            </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="window.location.reload()">Close & Reload</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function syncAllData() {
+    const modal = new bootstrap.Modal(document.getElementById('syncResultsModal'));
+    const progressDiv = document.getElementById('syncAllProgress');
+    const resultsDiv = document.getElementById('syncAllResults');
+    const tbody = document.getElementById('syncAllResultsBody');
+    
+    // Reset UI
+    progressDiv.style.display = 'block';
+    resultsDiv.style.display = 'none';
+    tbody.innerHTML = '';
+    modal.show();
+    
+    try {
+        const response = await fetch('/sync_all_vessels', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        // Hide progress, show results
+        progressDiv.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        
+        if (response.ok && data.success) {
+            document.getElementById('syncAllStatusText').textContent = `Synced ${data.success_count} / ${data.total} vessels successfully.`;
+            
+            data.results.forEach(res => {
+                const row = document.createElement('tr');
+                const statusIcon = res.success ? '<span class="badge bg-success">Success</span>' : '<span class="badge bg-danger">Failed</span>';
+                row.innerHTML = `
+                    <td>${res.vessel_name}</td>
+                    <td>${statusIcon}</td>
+                    <td class="small text-muted">${res.message}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            document.getElementById('syncAllStatusText').textContent = 'Error: ' + (data.message || 'Unknown error');
+            document.getElementById('syncAllStatusText').className = 'text-danger';
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        progressDiv.style.display = 'none';
+        resultsDiv.style.display = 'block';
+        document.getElementById('syncAllStatusText').textContent = 'Critical Network Error';
+    }
+}
+</script>
 </body>
 </html>

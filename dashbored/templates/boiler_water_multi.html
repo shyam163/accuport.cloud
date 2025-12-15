@@ -2,6 +2,36 @@
 
 {% block title %}Boiler Water - {{ vessel.vessel_name }}{% endblock %}
 
+<style>
+    /* Quick Preset button styling for compact sidebar fit */
+    .date-preset {
+        font-size: 0.5rem !important;  /* Very small for sidebar fit at all widths */
+        padding: 0.25rem 0 !important;
+        height: auto !important;
+        box-sizing: border-box !important;
+        line-height: 1.1 !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .text-muted.d-block.mb-1 {
+        font-size: 0.7rem !important;
+    }
+    /* Grid layout for preset buttons - 2 columns, 3 rows */
+    .preset-btn-container {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 2px !important;
+    }
+    .preset-btn-container .btn {
+        flex: none !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+    }
+</style>
+
 {% block content %}
 <div class="container-fluid mt-4">
     <!-- Breadcrumb and Title -->
@@ -9,7 +39,7 @@
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard', vessel_id=vessel.id) }}">Dashboard</a></li>
                     <li class="breadcrumb-item active">Boiler Water</li>
                 </ol>
             </nav>
@@ -72,6 +102,18 @@
                             <label for="end_date" class="form-label"><strong>End Date</strong></label>
                             <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
                         </div>
+
+                        <!-- Quick Presets -->
+                        <small class="text-muted d-block mb-1">Quick Presets:</small>
+                        <div class="preset-btn-container w-100 mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="30">30D</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="90">90D</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="180">6mo</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="365">1yr</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="1095">3YR</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="all">All</button>
+                        </div>
+
                         <button type="submit" class="btn btn-primary w-100 mb-2">
                             <i class="bi bi-funnel"></i> Apply Filter
                         </button>
@@ -213,6 +255,20 @@ const BOILER_COLORS = {
     'Hotwell': '#ffc107' // Yellow
 };
 
+// Convert date from YYYY-MM-DD or full timestamp to dd-mm-yy format
+function formatDateForHover(dateStr) {
+    // Extract date portion if it's a full timestamp
+    const datePart = dateStr.split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+        const year = parts[0].slice(-2); // Get last 2 digits of year
+        const month = parts[1];
+        const day = parts[2];
+        return `${day}-${month}-${year}`;
+    }
+    return dateStr;
+}
+
 // Boiler selection management
 const boilerCheckboxes = document.querySelectorAll('.boiler-checkbox');
 const selectAllBtn = document.getElementById('select-all');
@@ -281,7 +337,9 @@ function updateCharts() {
                     mode: 'lines+markers',
                     name: boilerId,
                     line: { color: BOILER_COLORS[boilerId], width: 2 },
-                    marker: { size: 6 }
+                    marker: { size: 6 },
+                    hovertemplate: `${boilerId}<br>Date: %{customdata}<br>Value: %{y}<extra></extra>`,
+                    customdata: data.map(m => formatDateForHover(m.measurement_date))
                 });
                 allDates = allDates.concat(data.map(m => new Date(m.measurement_date)));
 
@@ -301,10 +359,18 @@ function updateCharts() {
             }
         });
 
-        // Calculate date range
+        // Calculate date range with 10% padding
         let minDate = new Date(Math.min(...allDates));
         let maxDate = new Date(Math.max(...allDates));
-        if (minDate.toDateString() === maxDate.toDateString()) {
+
+        // Add 10% padding on both sides
+        const dateRange = maxDate.getTime() - minDate.getTime();
+        const padding = dateRange * 0.10;
+        minDate = new Date(minDate.getTime() - padding);
+        maxDate = new Date(maxDate.getTime() + padding);
+
+        // Handle single date case
+        if (dateRange === 0) {
             minDate = new Date(minDate.getTime() - 86400000);
             maxDate = new Date(maxDate.getTime() + 86400000);
         }
@@ -313,12 +379,32 @@ function updateCharts() {
         let lastTestDate = new Date(Math.max(...allDates.filter(d => !isNaN(d))));
         let lastTestDateStr = lastTestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+        // Get unique dates for x-axis ticks (eliminate duplicates)
+        const uniqueDatesSet = new Set();
+        allDates.forEach(d => {
+            const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            uniqueDatesSet.add(dateOnly.getTime());
+        });
+
+        const uniqueDates = Array.from(uniqueDatesSet)
+            .map(timestamp => new Date(timestamp))
+            .sort((a, b) => a - b);
+
+        const tickvals = uniqueDates.map(d => d.toISOString().split('T')[0]);
+        const ticktext = uniqueDates.map(d => {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = String(d.getFullYear()).slice(-2);
+            return `${day}-${month}-${year}`;
+        });
+
         const layout = {
             title: `${paramName}, Last Test Date ${lastTestDateStr}`,
             xaxis: {
                 title: 'Date',
-                tickformat: '%b %d, %Y',
-                dtick: 86400000,
+                tickmode: 'array',
+                tickvals: tickvals,
+                ticktext: ticktext,
                 range: [minDate, maxDate]
             },
             yaxis: { title: `${paramName} (${paramInfo.unit})` },
@@ -334,5 +420,31 @@ function updateCharts() {
 {% if boiler_data %}
 updateCharts();
 {% endif %}
+
+// Quick Preset date range buttons
+document.querySelectorAll('.date-preset').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const days = this.getAttribute('data-days');
+        const endDate = new Date();
+        let startDate;
+
+        if (days === 'all') {
+            // Set to earliest possible date
+            startDate = new Date('2000-01-01');
+        } else {
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - parseInt(days));
+        }
+
+        // Format dates as YYYY-MM-DD
+        const formatDate = (d) => d.toISOString().split('T')[0];
+
+        document.getElementById('start_date').value = formatDate(startDate);
+        document.getElementById('end_date').value = formatDate(endDate);
+
+        // Submit the form
+        document.getElementById('filter-form').submit();
+    });
+});
 </script>
 {% endblock %}

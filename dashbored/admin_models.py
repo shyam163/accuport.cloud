@@ -338,6 +338,7 @@ def get_user_vessel_assignments(user_id):
 def assign_vessel_manager_to_fleet_manager(fleet_manager_id, vessel_manager_id, assigned_by_user_id):
     """
     Assign a vessel manager to report to a fleet manager
+    If the vessel manager is already assigned to another fleet manager, reassign them
     Args:
         fleet_manager_id: Fleet manager user ID
         vessel_manager_id: Vessel manager user ID
@@ -347,19 +348,37 @@ def assign_vessel_manager_to_fleet_manager(fleet_manager_id, vessel_manager_id, 
     """
     with get_users_connection() as conn:
         cursor = conn.cursor()
-        
+
         try:
+            # Check if vessel manager is already assigned
             cursor.execute('''
-                INSERT INTO manager_hierarchy (fleet_manager_id, vessel_manager_id)
-                VALUES (?, ?)
-            ''', (fleet_manager_id, vessel_manager_id))
-            
+                SELECT fleet_manager_id FROM manager_hierarchy
+                WHERE vessel_manager_id = ?
+            ''', (vessel_manager_id,))
+            existing = cursor.fetchone()
+
+            if existing:
+                # Update existing assignment (reassignment)
+                cursor.execute('''
+                    UPDATE manager_hierarchy
+                    SET fleet_manager_id = ?
+                    WHERE vessel_manager_id = ?
+                ''', (fleet_manager_id, vessel_manager_id))
+                action_detail = f'Reassigned vessel manager {vessel_manager_id} from fleet manager {existing[0]} to fleet manager {fleet_manager_id}'
+            else:
+                # Create new assignment
+                cursor.execute('''
+                    INSERT INTO manager_hierarchy (fleet_manager_id, vessel_manager_id)
+                    VALUES (?, ?)
+                ''', (fleet_manager_id, vessel_manager_id))
+                action_detail = f'Assigned vessel manager {vessel_manager_id} to fleet manager {fleet_manager_id}'
+
             # Log the action
             cursor.execute('''
                 INSERT INTO admin_audit_log (admin_user_id, action_type, action_details, target_user_id)
                 VALUES (?, ?, ?, ?)
-            ''', (assigned_by_user_id, 'ASSIGN_HIERARCHY', f'Assigned vessel manager {vessel_manager_id} to fleet manager {fleet_manager_id}', vessel_manager_id))
-            
+            ''', (assigned_by_user_id, 'ASSIGN_HIERARCHY', action_detail, vessel_manager_id))
+
             conn.commit()
             return True
         except Exception as e:
@@ -420,17 +439,27 @@ def get_subordinate_vessel_managers(fleet_manager_id):
 
 def get_unassigned_vessel_managers():
     """
-    Get all vessel managers not assigned to any fleet manager
+    Get all vessel managers (both assigned and unassigned)
+    Shows current assignment status in the results
     Returns:
-        list of user dicts
+        list of user dicts with 'current_fleet_manager' field
     """
     with get_users_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT u.id, u.username, u.full_name, u.email, u.role, u.is_active
+            SELECT
+                u.id,
+                u.username,
+                u.full_name,
+                u.email,
+                u.role,
+                u.is_active,
+                fm.full_name as current_fleet_manager,
+                mh.fleet_manager_id as current_fleet_manager_id
             FROM users u
+            LEFT JOIN manager_hierarchy mh ON u.id = mh.vessel_manager_id
+            LEFT JOIN users fm ON mh.fleet_manager_id = fm.id
             WHERE u.role = 'vessel_manager'
-            AND u.id NOT IN (SELECT vessel_manager_id FROM manager_hierarchy)
             AND u.is_active = 1
             ORDER BY u.full_name
         ''')

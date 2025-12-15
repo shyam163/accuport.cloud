@@ -184,7 +184,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("vessel_id", help="The ID of the vessel to fetch (e.g., mt_aqua)")
-    parser.add_argument("days", type=int, nargs='?', default=30, help="Days of history to fetch")
+    parser.add_argument("days", type=int, nargs='?', default=1825, help="Days of history to fetch")
     parser.add_argument("--config", default=default_config, help="Path to vessels_config.yaml")
     parser.add_argument("--db", default=default_db, help="Path to sqlite database")
     

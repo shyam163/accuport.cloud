@@ -36,6 +36,20 @@
                                 <input type="text" class="form-control" id="vessel_name" name="vessel_name" 
                                        value="{{ details.vessel_name or '' }}" placeholder="e.g., MT Aqua">
                             </div>
+                            <div class="col-md-12 mb-3">
+                                <label for=auth_token class=form-label>
+                                    <strong>Labcom Auth Token</strong> 
+                                    <span class="text-danger">*</span>
+                                    <small class="text-muted">(Required for data synchronization)</small>
+                                </label>
+                                <input type="text" class="form-control" id="auth_token" name="auth_token" 
+                                       value="{{ details.auth_token or ''  }}" 
+                                       placeholder="e.g., e7473138fa66ac36b66afaa4705271df5e7cbfaeaa3564b75e7ad5aa2115c365..." 
+                                       required>
+                                <small class="form-text text-muted">
+                                    <i class="bi bi-info-circle"></i> This token is used to fetch measurement data from Labcom API
+                                </small>
+                            </div>
                             <div class="col-md-6 mb-3">
                                 <label for="vessel_type" class="form-label">Vessel Type</label>
                                 <input type="text" class="form-control" id="vessel_type" name="vessel_type" 
@@ -259,19 +273,14 @@
                         <!-- Shared Boiler Fields -->
                         <h6 class="text-primary"><strong>Shared (All Boilers)</strong></h6>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="boiler_system_oil" class="form-label">System Oil</label>
-                                <input type="text" class="form-control" id="boiler_system_oil" name="boiler_system_oil" 
-                                       value="{{ details.boiler_system_oil or '' }}" placeholder="e.g., Shell Morlina S2 BL 10">
-                            </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="boiler_fuel1" class="form-label">Fuel 1</label>
-                                <input type="text" class="form-control" id="boiler_fuel1" name="boiler_fuel1" 
+                                <input type="text" class="form-control" id="boiler_fuel1" name="boiler_fuel1"
                                        value="{{ details.boiler_fuel1 or '' }}" placeholder="e.g., MGO">
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="boiler_fuel2" class="form-label">Fuel 2</label>
-                                <input type="text" class="form-control" id="boiler_fuel2" name="boiler_fuel2" 
+                                <input type="text" class="form-control" id="boiler_fuel2" name="boiler_fuel2"
                                        value="{{ details.boiler_fuel2 or '' }}" placeholder="e.g., LSMGO">
                             </div>
                         </div>
@@ -463,12 +472,17 @@
                     </div>
                 </div>
 
+                <!-- Sync Status Alert -->
+                <div id="sync-status-alert" class="alert alert-info d-none mb-3" role="alert">
+                    <i class="bi bi-info-circle"></i> <span id="sync-status-message"></span>
+                </div>
+
                 <!-- Form Buttons -->
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
                     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-lg">
                         <i class="bi bi-x-circle"></i> Cancel
                     </a>
-                    <button type="submit" class="btn btn-primary btn-lg">
+                    <button type="submit" id="save-btn" class="btn btn-primary btn-lg">
                         <i class="bi bi-save"></i> Save Vessel Specifications
                     </button>
                 </div>
@@ -520,4 +534,88 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const saveBtn = document.getElementById('save-btn');
+    const syncAlert = document.getElementById('sync-status-alert');
+    const syncMessage = document.getElementById('sync-status-message');
+    const vesselNameInput = document.getElementById('vessel_name');
+    const authTokenInput = document.getElementById('auth_token');
+
+    let isSyncTesting = false;
+
+    // Form submission handler - test sync first, then submit if successful
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // Always prevent default first
+
+        if (isSyncTesting) {
+            return; // Already testing
+        }
+
+        const vesselName = vesselNameInput.value.trim();
+        const authToken = authTokenInput.value.trim();
+
+        // Validate required fields
+        if (!vesselName || !authToken) {
+            showAlert('danger', 'Please enter both Vessel Name and Auth Token before saving.');
+            return;
+        }
+
+        // Show testing state
+        isSyncTesting = true;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing Sync...';
+        showAlert('info', 'Testing sync connection before saving...');
+
+        // Make AJAX request to test sync
+        fetch('{{ url_for("admin_test_vessel_sync", vessel_id=vessel.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                vessel_name: vesselName,
+                auth_token: authToken
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Sync test passed - show success and submit form
+                showAlert('success', `✓ Sync test successful! Connected to: ${data.connected_as}. Found ${data.sampling_points} sampling points. Saving vessel specifications...`);
+
+                // Small delay to show the success message, then submit
+                setTimeout(() => {
+                    form.submit();
+                }, 1000);
+            } else {
+                // Sync test failed - show error and don't submit
+                showAlert('danger', `✗ Sync test failed: ${data.error}. Please check the auth token and vessel name. Changes NOT saved.`);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Vessel Specifications';
+                isSyncTesting = false;
+            }
+        })
+        .catch(error => {
+            showAlert('danger', `✗ Sync test error: ${error.message}. Changes NOT saved.`);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Vessel Specifications';
+            isSyncTesting = false;
+        });
+    });
+
+    function showAlert(type, message) {
+        syncAlert.className = `alert alert-${type}`;
+        syncMessage.innerHTML = message;
+        syncAlert.classList.remove('d-none');
+
+        // Scroll to alert
+        syncAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+});
+</script>
 {% endblock %}

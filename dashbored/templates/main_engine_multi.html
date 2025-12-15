@@ -2,13 +2,44 @@
 
 {% block title %}Main Engines - {{ vessel.vessel_name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .date-preset {
+        font-size: 0.5rem !important;  /* Very small for sidebar fit at all widths */
+        padding: 0.25rem 0 !important;
+        height: auto !important;
+        box-sizing: border-box !important;
+        line-height: 1.1 !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .text-muted.d-block.mb-1 {
+        font-size: 0.7rem !important;
+    }
+    /* Grid layout for preset buttons - 2 columns, 3 rows with equal sizing */
+    .preset-btn-container {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 2px !important;
+    }
+    .preset-btn-container .btn {
+        flex: none !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard', vessel_id=vessel.id) }}">Dashboard</a></li>
                     <li class="breadcrumb-item active">Main Engines</li>
                 </ol>
             </nav>
@@ -50,8 +81,19 @@
             <!-- Date Range Filter -->
             <div class="card">
                 <div class="card-body">
-                    <h6 class="card-title"><i class="bi bi-calendar-range"></i> Date Range</h6>
-                    <form method="GET" id="filter-form">
+                    <h6 class="card-title text-center"><i class="bi bi-calendar-range"></i> Date Range</h6>
+                    <div class="mb-2">
+                        <small class="text-muted d-block mb-1">Quick Presets:</small>
+                        <div class="preset-btn-container w-100">
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="30">30D</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="90">90D</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="180">6mo</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="365">1yr</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="1095">3YR</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm date-preset" data-days="all">All</button>
+                        </div>
+                    </div>
+                    <form method="GET" id="filter-form" onsubmit="storeActiveTab()">
                         <div class="mb-3">
                             <label for="start_date" class="form-label"><strong>Start Date</strong></label>
                             <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
@@ -66,7 +108,18 @@
                         <button type="button" class="btn btn-secondary w-100" onclick="window.location.href='{{ url_for('main_engines_multi') }}'">
                             <i class="bi bi-x-circle"></i> Reset
                         </button>
+                        <input type="hidden" name="active_tab" id="active_tab" value="{{ request.args.get('active_tab', '') }}">
                     </form>
+                    {% if scavenge_data_range %}
+                    <div class="alert alert-info py-2 px-3 mt-3 mb-0" style="font-size: 0.875rem;">
+                        <i class="bi bi-info-circle"></i> <strong>Data Available:</strong><br>
+                        <small>{{ scavenge_data_range.earliest.strftime('%b %d, %Y') }} - {{ scavenge_data_range.latest.strftime('%b %d, %Y') }}</small>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning py-2 px-3 mt-3 mb-0" style="font-size: 0.875rem;">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>No scavenge drain data available</strong>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -163,6 +216,15 @@
                                     <div class="card-body">
                                         <h6 class="card-title mb-3"><i class="bi bi-diagram-3"></i> Select Cylinders</h6>
                                         <div class="row">
+                                            <!-- SD0 Fresh Oil Reference -->
+                                            <div class="col-6 col-md-4 col-lg-2 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input cylinder-checkbox" type="checkbox" value="SD0" id="sd0-check">
+                                                    <label class="form-check-label" for="sd0-check">
+                                                        <strong>Fresh</strong>
+                                                    </label>
+                                                </div>
+                                            </div>
                                             {% for i in range(1, 13) %}
                                             <div class="col-6 col-md-4 col-lg-2 mb-2">
                                                 <div class="form-check">
@@ -184,7 +246,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div id="scavenge-timeseries" style="margin-bottom: 20px;"></div>
+                                <div id="scavenge-iron" style="margin-bottom: 20px;"></div>
+                                <div id="scavenge-bn" style="margin-bottom: 20px;"></div>
                                 <div id="scavenge-scatter"></div>
                             {% else %}
                                 <div class="alert alert-info mb-0">
@@ -406,12 +469,30 @@ function updateCoolingCharts(selectedEngines) {
             let lastTestDate = new Date(Math.max(...allDates.filter(d => !isNaN(d))));
             let lastTestDateStr = lastTestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+            // Get unique dates for x-axis ticks
+            const uniqueDatesSet = new Set();
+            allDates.forEach(d => {
+                const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                uniqueDatesSet.add(dateOnly.getTime());
+            });
+
+            const uniqueDates = Array.from(uniqueDatesSet)
+                .map(timestamp => new Date(timestamp))
+                .sort((a, b) => a - b);
+
+            const tickvals = uniqueDates.map(d => d.toISOString().split('T')[0]);
+            const ticktext = uniqueDates.map(d => {
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${monthNames[d.getMonth()]} ${d.getDate()}`;
+            });
+
             Plotly.newPlot(div, traces, {
                 title: `${paramName}, Last Test Date ${lastTestDateStr}`,
                 xaxis: {
                     title: 'Date',
-                    tickformat: '%b %d, %Y',
-                    dtick: 86400000,
+                    tickmode: 'array',
+                    tickvals: tickvals,
+                    ticktext: ticktext,
                     range: [minDate, maxDate]
                 },
                 yaxis: { title: `${paramName} (${paramInfo.unit})` }
@@ -466,9 +547,32 @@ cylinderCheckboxes.forEach(cb => {
 });
 
 function getSelectedCylinders() {
-    return Array.from(cylinderCheckboxes)
+    const selected = Array.from(cylinderCheckboxes)
         .filter(cb => cb.checked)
-        .map(cb => parseInt(cb.value.replace('CYL', '')));
+        .map(cb => cb.value);
+
+    // Separate SD0 and cylinder numbers
+    const result = {
+        includeSD0: selected.includes('SD0'),
+        cylinders: selected
+            .filter(v => v.startsWith('CYL'))
+            .map(v => parseInt(v.replace('CYL', '')))
+    };
+    return result;
+}
+
+// Convert date from YYYY-MM-DD or full timestamp to dd-mm-yy format
+function formatDateForHover(dateStr) {
+    // Extract date portion if it's a full timestamp
+    const datePart = dateStr.split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+        const year = parts[0].slice(-2); // Get last 2 digits of year
+        const month = parts[1];
+        const day = parts[2];
+        return `${day}-${month}-${year}`;
+    }
+    return dateStr;
 }
 
 function updateScavengeTimeSeries(selectedEngines) {
@@ -478,12 +582,22 @@ function updateScavengeTimeSeries(selectedEngines) {
     const filteredData = allScavengeData.filter(m => {
         if (!selectedEngines.includes(m.engine_id)) return false;
 
+        // Check if this is Fresh Oil (SD0 or Unit 0)
+        if (m.sampling_point_name.includes('SD0') || m.sampling_point_name.includes('Fresh')) {
+            return selectedCylinders.includeSD0;
+        }
+
+        // Check for regular cylinder (Unit X)
         const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
         if (cylinderMatch) {
             const cylinderNum = parseInt(cylinderMatch[1]);
-            return selectedCylinders.includes(cylinderNum);
+            // Treat Unit 0 as Fresh Oil (SD0)
+            if (cylinderNum === 0) {
+                return selectedCylinders.includeSD0;
+            }
+            return selectedCylinders.cylinders.includes(cylinderNum);
         }
-        return true;
+        return false;
     });
 
     const ironData = filteredData.filter(m => m.parameter_name.includes('Iron'));
@@ -494,69 +608,101 @@ function updateScavengeTimeSeries(selectedEngines) {
     // Color mapping by engine and parameter type
     // Cylinder 1 = darkest, progressively lighter for higher cylinders
 
-    // ME1 Iron - Blue shades
+    // ME1 Iron - Rainbow colors
     const getME1IronColor = (cylinderNum) => {
-        const blueShades = {
-            1: '#003366',  // Darkest blue
-            2: '#0056b3',
-            3: '#0d6efd',
-            4: '#4d94ff',
-            5: '#80b3ff',
-            6: '#b3d9ff',
-            7: '#cce5ff',
-            8: '#e6f2ff'
+        const rainbowColors = {
+            0: '#8B00FF',  // Fresh Oil - Violet
+            1: '#FF0000',  // Red
+            2: '#FF7F00',  // Orange
+            3: '#FFFF00',  // Yellow
+            4: '#00FF00',  // Green
+            5: '#00FFFF',  // Cyan
+            6: '#0000FF',  // Blue
+            7: '#4B0082',  // Indigo
+            8: '#FF00FF'   // Magenta
         };
-        return blueShades[cylinderNum] || '#0d6efd';
+        return rainbowColors[cylinderNum] || '#00FF00';
     };
 
-    // ME1 Base Number - Red shades
+    // ME1 Base Number - Rainbow colors (slightly darker shades)
     const getME1BNColor = (cylinderNum) => {
-        const redShades = {
-            1: '#990000',  // Darkest red
-            2: '#b30000',
-            3: '#dc3545',
-            4: '#ff6b7a',
-            5: '#ff9aa2',
-            6: '#ffcccc',
-            7: '#ffe0e0',
-            8: '#fff0f0'
+        const rainbowColors = {
+            0: '#7B00E0',  // Fresh Oil - Darker Violet
+            1: '#E00000',  // Darker Red
+            2: '#E07000',  // Darker Orange
+            3: '#E0E000',  // Darker Yellow
+            4: '#00E000',  // Darker Green
+            5: '#00E0E0',  // Darker Cyan
+            6: '#0000E0',  // Darker Blue
+            7: '#3B0072',  // Darker Indigo
+            8: '#E000E0'   // Darker Magenta
         };
-        return redShades[cylinderNum] || '#dc3545';
+        return rainbowColors[cylinderNum] || '#00E000';
     };
 
-    // ME2 Iron - Green shades
+    // ME2 Iron - Rainbow colors (bright variants)
     const getME2IronColor = (cylinderNum) => {
-        const greenShades = {
-            1: '#004d00',  // Darkest green
-            2: '#006600',
-            3: '#198754',
-            4: '#28a745',
-            5: '#5cb85c',
-            6: '#90ee90',
-            7: '#c8e6c9',
-            8: '#e8f5e9'
+        const rainbowColors = {
+            0: '#9B20FF',  // Fresh Oil - Bright Violet
+            1: '#FF1A1A',  // Bright Red
+            2: '#FF8C1A',  // Bright Orange
+            3: '#FFFF33',  // Bright Yellow
+            4: '#33FF33',  // Bright Green
+            5: '#33FFFF',  // Bright Cyan
+            6: '#1A1AFF',  // Bright Blue
+            7: '#5B1A92',  // Bright Indigo
+            8: '#FF33FF'   // Bright Magenta
         };
-        return greenShades[cylinderNum] || '#198754';
+        return rainbowColors[cylinderNum] || '#33FF33';
     };
 
-    // ME2 Base Number - Orange shades
+    // ME2 Base Number - Rainbow colors (vivid shades)
     const getME2BNColor = (cylinderNum) => {
-        const orangeShades = {
-            1: '#cc5200',  // Darkest orange
-            2: '#e65c00',
-            3: '#ff6600',
-            4: '#ff8533',
-            5: '#ffa366',
-            6: '#ffcc99',
-            7: '#ffe0cc',
-            8: '#fff0e6'
+        const rainbowColors = {
+            0: '#A040FF',  // Fresh Oil - Vivid Violet
+            1: '#FF3333',  // Vivid Red
+            2: '#FF9933',  // Vivid Orange
+            3: '#FFFF66',  // Vivid Yellow
+            4: '#66FF66',  // Vivid Green
+            5: '#66FFFF',  // Vivid Cyan
+            6: '#3333FF',  // Vivid Blue
+            7: '#6B20A2',  // Vivid Indigo
+            8: '#FF66FF'   // Vivid Magenta
         };
-        return orangeShades[cylinderNum] || '#ff6600';
+        return rainbowColors[cylinderNum] || '#66FF66';
     };
 
     // Create traces for Iron - one trace per cylinder per engine
     selectedEngines.forEach(engineId => {
-        selectedCylinders.forEach(cylinderNum => {
+        // Handle Fresh Oil (Cylinder 0) if selected
+        if (selectedCylinders.includeSD0) {
+            const cyl0IronData = ironData
+                .filter(m => {
+                    if (m.engine_id !== engineId) return false;
+                    const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
+                    if (cylinderMatch && parseInt(cylinderMatch[1]) === 0) return true;
+                    if (m.sampling_point_name.includes('SD0') || m.sampling_point_name.includes('Fresh')) return true;
+                    return false;
+                })
+                .sort((a, b) => new Date(a.measurement_date) - new Date(b.measurement_date));
+
+            if (cyl0IronData.length > 0) {
+                traces.push({
+                    x: cyl0IronData.map(m => m.measurement_date),
+                    y: cyl0IronData.map(m => m.value_numeric),
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: `${engineId} Cyl 0 (Fresh Oil) - Iron`,
+                    line: { color: engineId === 'ME1' ? getME1IronColor(0) : getME2IronColor(0), width: 2 },
+                    marker: { size: 6 },
+                    yaxis: 'y1',
+                    hovertemplate: `${engineId} Cyl 0 (Fresh Oil) - Iron<br>Date: %{customdata}<br>Value: %{y}<extra></extra>`,
+                    customdata: cyl0IronData.map(m => formatDateForHover(m.measurement_date))
+                });
+            }
+        }
+
+        selectedCylinders.cylinders.forEach(cylinderNum => {
             const cylinderIronData = ironData
                 .filter(m => {
                     if (m.engine_id !== engineId) return false;
@@ -577,7 +723,9 @@ function updateScavengeTimeSeries(selectedEngines) {
                     name: `${engineId} Cyl ${cylinderNum} - Iron`,
                     line: { color: engineId === 'ME1' ? getME1IronColor(cylinderNum) : getME2IronColor(cylinderNum), width: 2 },
                     marker: { size: 6 },
-                    yaxis: 'y1'
+                    yaxis: 'y1',
+                    hovertemplate: `${engineId} Cyl ${cylinderNum} - Iron<br>Date: %{customdata}<br>Value: %{y}<extra></extra>`,
+                    customdata: cylinderIronData.map(m => formatDateForHover(m.measurement_date))
                 });
             }
         });
@@ -585,7 +733,35 @@ function updateScavengeTimeSeries(selectedEngines) {
 
     // Create traces for Base Number - one trace per cylinder per engine
     selectedEngines.forEach(engineId => {
-        selectedCylinders.forEach(cylinderNum => {
+        // Handle Fresh Oil (Cylinder 0) if selected
+        if (selectedCylinders.includeSD0) {
+            const cyl0BNData = bnData
+                .filter(m => {
+                    if (m.engine_id !== engineId) return false;
+                    const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
+                    if (cylinderMatch && parseInt(cylinderMatch[1]) === 0) return true;
+                    if (m.sampling_point_name.includes('SD0') || m.sampling_point_name.includes('Fresh')) return true;
+                    return false;
+                })
+                .sort((a, b) => new Date(a.measurement_date) - new Date(b.measurement_date));
+
+            if (cyl0BNData.length > 0) {
+                traces.push({
+                    x: cyl0BNData.map(m => m.measurement_date),
+                    y: cyl0BNData.map(m => m.value_numeric),
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: `${engineId} Cyl 0 (Fresh Oil) - Base Number`,
+                    line: { color: engineId === 'ME1' ? getME1BNColor(0) : getME2BNColor(0), width: 2 },
+                    marker: { size: 6, symbol: 'square' },
+                    yaxis: 'y2',
+                    hovertemplate: `${engineId} Cyl 0 (Fresh Oil) - Base Number<br>Date: %{customdata}<br>Value: %{y}<extra></extra>`,
+                    customdata: cyl0BNData.map(m => formatDateForHover(m.measurement_date))
+                });
+            }
+        }
+
+        selectedCylinders.cylinders.forEach(cylinderNum => {
             const cylinderBNData = bnData
                 .filter(m => {
                     if (m.engine_id !== engineId) return false;
@@ -606,21 +782,31 @@ function updateScavengeTimeSeries(selectedEngines) {
                     name: `${engineId} Cyl ${cylinderNum} - Base Number`,
                     line: { color: engineId === 'ME1' ? getME1BNColor(cylinderNum) : getME2BNColor(cylinderNum), width: 2 },
                     marker: { size: 6, symbol: 'square' },
-                    yaxis: 'y2'
+                    yaxis: 'y2',
+                    hovertemplate: `${engineId} Cyl ${cylinderNum} - Base Number<br>Date: %{customdata}<br>Value: %{y}<extra></extra>`,
+                    customdata: cylinderBNData.map(m => formatDateForHover(m.measurement_date))
                 });
             }
         });
     });
 
     if (traces.length > 0) {
-        // Calculate date range
+        // Calculate date range with 10% padding
         let allDates = [];
         traces.forEach(trace => {
             if (trace.x) allDates = allDates.concat(trace.x.map(d => new Date(d)));
         });
         let minDate = new Date(Math.min(...allDates));
         let maxDate = new Date(Math.max(...allDates));
-        if (minDate.toDateString() === maxDate.toDateString()) {
+        
+        // Add 10% padding on both sides
+        const dateRange = maxDate.getTime() - minDate.getTime();
+        const padding = dateRange * 0.10;
+        minDate = new Date(minDate.getTime() - padding);
+        maxDate = new Date(maxDate.getTime() + padding);
+
+        // Handle single date case
+        if (dateRange === 0) {
             minDate = new Date(minDate.getTime() - 86400000);
             maxDate = new Date(maxDate.getTime() + 86400000);
         }
@@ -629,34 +815,139 @@ function updateScavengeTimeSeries(selectedEngines) {
         let lastTestDate = new Date(Math.max(...allDates.filter(d => !isNaN(d))));
         let lastTestDateStr = lastTestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-        Plotly.newPlot('scavenge-timeseries', traces, {
-            title: `Scavenge Drain Trends, Last Test Date ${lastTestDateStr}`,
-            xaxis: { tickformat: '%b %d, %Y', dtick: 86400000, range: [minDate, maxDate] },
-            yaxis: {
-                title: 'Iron in Oil (mg/L)',
-                side: 'left'
-            },
-            yaxis2: {
-                title: 'Base Number (BN)',
-                overlaying: 'y',
-                side: 'right'
-            },
-            hovermode: 'closest',
-            showlegend: true,
-            legend: {
-                orientation: 'h',
-                x: 0,
-                y: -0.2,
-                xanchor: 'left',
-                yanchor: 'top'
-            },
-            margin: {
-                b: 120
-            },
-            height: 500
-        }, { responsive: true });
+        // Get unique dates for x-axis ticks
+        const uniqueDatesSet = new Set();
+        allDates.forEach(d => {
+            // Normalize to date only (remove time component)
+            const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            uniqueDatesSet.add(dateOnly.getTime());
+        });
+
+        const uniqueDates = Array.from(uniqueDatesSet)
+            .map(timestamp => new Date(timestamp))
+            .sort((a, b) => a - b);
+
+        // Format unique dates for display
+        const tickvals = uniqueDates.map(d => d.toISOString().split('T')[0]);
+        const ticktext = uniqueDates.map(d => {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${monthNames[d.getMonth()]} ${d.getDate()}`;
+        });
+
+        // For single date, ensure tick is always shown
+        let xaxisConfig = {
+            tickmode: 'array',
+            tickvals: tickvals,
+            ticktext: ticktext,
+            tickangle: -45,
+            range: [minDate, maxDate]
+        };
+
+        // If only one date, force the tick to show
+        if (uniqueDates.length === 1) {
+            xaxisConfig.tickmode = 'array';
+            xaxisConfig.showticklabels = true;
+        }
+
+        // Create annotations for cylinder numbers on data points
+        const annotations = [];
+        traces.forEach(trace => {
+            if (trace.x && trace.y && trace.name) {
+                const cylinderMatch = trace.name.match(/Cyl (\d+)/);
+                if (cylinderMatch) {
+                    const cylinderNum = cylinderMatch[1];
+                    trace.x.forEach((xVal, idx) => {
+                        annotations.push({
+                            x: xVal,
+                            y: trace.y[idx],
+                            text: cylinderNum,
+                            showarrow: false,
+                            font: {
+                                size: 14,
+                                color: trace.line ? trace.line.color : '#000'
+                            },
+                            xshift: 0,
+                            yshift: 10,
+                            xref: 'x',
+                            yref: trace.yaxis === 'y2' ? 'y2' : 'y'
+                        });
+                    });
+                }
+            }
+        });
+
+        // Separate traces into Iron and Base Number
+        const ironTraces = traces.filter(t => t.yaxis === 'y1' || !t.yaxis);
+        const bnTraces = traces.filter(t => t.yaxis === 'y2');
+
+        // Separate annotations into Iron and Base Number
+        const ironAnnotations = annotations.filter(a => a.yref === 'y' || a.yref === 'y1');
+        const bnAnnotations = annotations.filter(a => a.yref === 'y2');
+
+        // Plot Iron in Oil
+        if (ironTraces.length > 0) {
+            Plotly.newPlot('scavenge-iron', ironTraces, {
+                title: `Scavenge Drain - Iron in Oil, Last Test Date ${lastTestDateStr}`,
+                xaxis: xaxisConfig,
+                yaxis: {
+                    title: 'Iron in Oil (mg/L)'
+                },
+                hovermode: 'closest',
+                showlegend: true,
+                legend: {
+                    orientation: 'h',
+                    x: 0,
+                    y: -0.35,
+                    xanchor: 'left',
+                    yanchor: 'top'
+                },
+                margin: {
+                    b: 150
+                },
+                height: 500,
+                annotations: ironAnnotations
+            }, { responsive: true });
+        } else {
+            document.getElementById('scavenge-iron').innerHTML =
+                '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No Iron in Oil data to display.</div>';
+        }
+
+        // Plot Base Number
+        if (bnTraces.length > 0) {
+            // Update yaxis reference for BN traces from y2 to y
+            bnTraces.forEach(trace => {
+                trace.yaxis = 'y';
+            });
+
+            Plotly.newPlot('scavenge-bn', bnTraces, {
+                title: `Scavenge Drain - Base Number, Last Test Date ${lastTestDateStr}`,
+                xaxis: xaxisConfig,
+                yaxis: {
+                    title: 'Base Number (BN)'
+                },
+                hovermode: 'closest',
+                showlegend: true,
+                legend: {
+                    orientation: 'h',
+                    x: 0,
+                    y: -0.35,
+                    xanchor: 'left',
+                    yanchor: 'top'
+                },
+                margin: {
+                    b: 150
+                },
+                height: 500,
+                annotations: bnAnnotations
+            }, { responsive: true });
+        } else {
+            document.getElementById('scavenge-bn').innerHTML =
+                '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No Base Number data to display.</div>';
+        }
     } else {
-        document.getElementById('scavenge-timeseries').innerHTML =
+        document.getElementById('scavenge-iron').innerHTML =
+            '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No data to display for selected engines and cylinders.</div>';
+        document.getElementById('scavenge-bn').innerHTML =
             '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No data to display for selected engines and cylinders.</div>';
     }
 }
@@ -668,13 +959,22 @@ function updateScavengeScatter(selectedEngines) {
     const filteredData = allScavengeData.filter(m => {
         if (!selectedEngines.includes(m.engine_id)) return false;
 
+        // Check if this is Fresh Oil (SD0 or Unit 0)
+        if (m.sampling_point_name.includes('SD0') || m.sampling_point_name.includes('Fresh')) {
+            return selectedCylinders.includeSD0;
+        }
+
         // Extract cylinder number from sampling point name (e.g., "SD1 ME Unit 1" -> 1)
         const cylinderMatch = m.sampling_point_name.match(/Unit (\d+)/);
         if (cylinderMatch) {
             const cylinderNum = parseInt(cylinderMatch[1]);
-            return selectedCylinders.includes(cylinderNum);
+            // Treat Unit 0 as Fresh Oil (SD0)
+            if (cylinderNum === 0) {
+                return selectedCylinders.includeSD0;
+            }
+            return selectedCylinders.cylinders.includes(cylinderNum);
         }
-        return true; // Include if no cylinder number found
+        return false;
     });
 
     const ironData = filteredData.filter(m => m.parameter_name.includes('Iron'));
@@ -693,15 +993,25 @@ function updateScavengeScatter(selectedEngines) {
 
         const scatterPoints = { dates: [], iron: [], bn: [], cylinders: [] };
         engineIronData.forEach(iron => {
-            const matchingBN = engineBNData.find(bn =>
-                bn.measurement_date === iron.measurement_date &&
-                bn.sampling_point_name === iron.sampling_point_name
-            );
-            if (matchingBN) {
-                const cylinderMatch = iron.sampling_point_name.match(/Unit (\d+)/);
-                const cylinderNum = cylinderMatch ? cylinderMatch[1] : 'N/A';
+            // Extract date portion (YYYY-MM-DD) from timestamp for matching
+            const ironDate = iron.measurement_date.split(' ')[0];
 
-                scatterPoints.dates.push(iron.measurement_date);
+            const matchingBN = engineBNData.find(bn => {
+                const bnDate = bn.measurement_date.split(' ')[0];
+                return bnDate === ironDate &&
+                       bn.sampling_point_name === iron.sampling_point_name;
+            });
+
+            if (matchingBN) {
+                let cylinderNum;
+                if (iron.sampling_point_name.includes('SD0') || iron.sampling_point_name.includes('Fresh')) {
+                    cylinderNum = '0';
+                } else {
+                    const cylinderMatch = iron.sampling_point_name.match(/Unit (\d+)/);
+                    cylinderNum = cylinderMatch ? cylinderMatch[1] : 'N/A';
+                }
+
+                scatterPoints.dates.push(ironDate);
                 scatterPoints.iron.push(iron.value_numeric);
                 scatterPoints.bn.push(matchingBN.value_numeric);
                 scatterPoints.cylinders.push(cylinderNum);
@@ -712,25 +1022,64 @@ function updateScavengeScatter(selectedEngines) {
             traces.push({
                 x: scatterPoints.bn,
                 y: scatterPoints.iron,
-                mode: 'markers',
+                mode: 'markers+text',
                 type: 'scatter',
                 name: engineId,
                 marker: {
                     size: 10,
                     color: engineColors[engineId] || '#6c757d'
                 },
-                text: scatterPoints.dates.map((d, idx) =>
-                    engineId + ' Cyl ' + scatterPoints.cylinders[idx] + ' - Date: ' + d
-                )
+                text: scatterPoints.cylinders.map(cyl => cyl),
+                textposition: 'top center',
+                textfont: {
+                    size: 15,
+                    color: engineColors[engineId] || '#6c757d'
+                },
+                hovertext: scatterPoints.dates.map((d, idx) =>
+                    engineId + ' Cyl ' + scatterPoints.cylinders[idx] + ' - Date: ' + formatDateForHover(d)
+                ),
+                hoverinfo: 'text'
             });
         }
     });
 
     if (traces.length > 0) {
+        // Calculate axis ranges with 10% padding
+        const allX = traces.flatMap(t => t.x || []);
+        const allY = traces.flatMap(t => t.y || []);
+
+        let xaxisConfig = { title: 'Base Number (BN)' };
+        if (allX.length > 0) {
+            const xMin = Math.min(...allX);
+            const xMax = Math.max(...allX);
+            const xRange = xMax - xMin;
+            const xPadding = xRange * 0.10;
+            xaxisConfig.range = [xMin - xPadding, xMax + xPadding];
+        }
+
+        let yaxisConfig = { title: 'Iron in Oil (mg/L)' };
+        if (allY.length > 0) {
+            const yMin = Math.min(...allY);
+            const yMax = Math.max(...allY);
+            const yRange = yMax - yMin;
+            const yPadding = yRange * 0.10;
+            yaxisConfig.range = [yMin - yPadding, yMax + yPadding];
+        }
+
         Plotly.newPlot('scavenge-scatter', traces, {
             title: 'Scavenge Drain Oil: Iron vs Base Number',
-            xaxis: { title: 'Base Number (BN)' },
-            yaxis: { title: 'Iron in Oil (mg/L)' },
+            xaxis: xaxisConfig,
+            yaxis: yaxisConfig,
+            legend: {
+                orientation: 'h',
+                x: 0,
+                y: -0.45,
+                xanchor: 'left',
+                yanchor: 'top'
+            },
+            margin: {
+                b: 170
+            },
             height: 500
         }, { responsive: true });
     } else {
@@ -745,10 +1094,81 @@ updateScavengeScatter(getSelectedEngines());
 
 // Resize plots when switching to scavenge drain tab
 document.getElementById('scavenge-tab').addEventListener('shown.bs.tab', function () {
-    Plotly.Plots.resize('scavenge-timeseries');
+    Plotly.Plots.resize('scavenge-iron');
+    Plotly.Plots.resize('scavenge-bn');
     Plotly.Plots.resize('scavenge-scatter');
 });
 {% endif %}
+
+// Function to store active tab before form submission
+function storeActiveTab() {
+    const activeTab = document.querySelector('.nav-link.active');
+    if (activeTab) {
+        document.getElementById('active_tab').value = activeTab.id;
+    }
+}
+
+// Date preset buttons functionality
+document.querySelectorAll('.date-preset').forEach(button => {
+    button.addEventListener('click', function() {
+        const days = this.getAttribute('data-days');
+        const endDate = new Date();
+        let startDate;
+
+        if (days === 'all') {
+            // Use earliest available date from scavenge_data_range
+            {% if scavenge_data_range %}
+            startDate = new Date('{{ scavenge_data_range.earliest.strftime('%Y-%m-%d') }}');
+            {% else %}
+            // Default to 1 year if no data range available
+            startDate = new Date();
+            startDate.setFullYear(startDate.getFullYear() - 1);
+            {% endif %}
+        } else {
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - parseInt(days));
+        }
+
+        // Format dates as YYYY-MM-DD for input fields
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        // Set the date input values
+        document.getElementById('start_date').value = formatDate(startDate);
+        document.getElementById('end_date').value = formatDate(endDate);
+
+        // Highlight active button
+        document.querySelectorAll('.date-preset').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+
+        // Store the active tab before submitting
+        const activeTab = document.querySelector('.nav-link.active');
+        if (activeTab) {
+            document.getElementById('active_tab').value = activeTab.id;
+        }
+
+        // Submit the form
+        document.getElementById('filter-form').submit();
+    });
+});
+
+// Restore active tab from URL parameter after DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const activeTabParam = document.getElementById('active_tab').value;
+    if (activeTabParam) {
+        const tabToActivate = document.querySelector(`#${activeTabParam}`);
+        if (tabToActivate) {
+            // Small delay to ensure Bootstrap is initialized
+            setTimeout(() => {
+                tabToActivate.click();
+            }, 100);
+        }
+    }
+});
 
 // Initialize table filtering
 updateCharts();

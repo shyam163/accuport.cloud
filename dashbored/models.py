@@ -324,7 +324,7 @@ def get_measurements_for_scavenge_drains(vessel_id, parameter_names, start_date=
             JOIN parameters p ON m.parameter_id = p.id
             JOIN sampling_points sp ON m.sampling_point_id = sp.id
             WHERE m.vessel_id = ?
-                AND sp.name LIKE '%Scavenge Drain%'
+                AND (sp.name LIKE '%Scavenge Drain%' OR sp.name LIKE '%SD0%' OR sp.name LIKE '%Fresh%Oil%')
                 AND ({like_conditions})
                 AND m.measurement_date BETWEEN ? AND ?
                 AND m.is_valid = 1
@@ -337,6 +337,52 @@ def get_measurements_for_scavenge_drains(vessel_id, parameter_names, start_date=
 
         cursor.execute(query, params)
         return list_from_rows(cursor.fetchall())
+
+
+
+def get_scavenge_drain_data_date_range(vessel_id):
+    """
+    Get the earliest and latest measurement dates for scavenge drain data
+    Returns dict with 'earliest' and 'latest' datetime objects, or None if no data
+    """
+    with get_accubase_connection() as conn:
+        cursor = conn.cursor()
+
+        query = '''
+            SELECT
+                MIN(m.measurement_date) as earliest,
+                MAX(m.measurement_date) as latest
+            FROM measurements m
+            JOIN sampling_points sp ON m.sampling_point_id = sp.id
+            WHERE m.vessel_id = ?
+                AND (sp.name LIKE '%Scavenge Drain%' OR sp.name LIKE '%SD0%' OR sp.name LIKE '%Fresh%Oil%')
+                AND m.is_valid = 1
+        '''
+
+        cursor.execute(query, (vessel_id,))
+        row = cursor.fetchone()
+
+        if row and row[0] and row[1]:
+            # Convert string dates to datetime objects for template formatting
+            earliest_str = row[0]
+            latest_str = row[1]
+
+            # Try parsing with microseconds first, then without
+            try:
+                earliest = datetime.strptime(earliest_str, '%Y-%m-%d %H:%M:%S.%f')
+            except:
+                earliest = datetime.strptime(earliest_str, '%Y-%m-%d %H:%M:%S')
+
+            try:
+                latest = datetime.strptime(latest_str, '%Y-%m-%d %H:%M:%S.%f')
+            except:
+                latest = datetime.strptime(latest_str, '%Y-%m-%d %H:%M:%S')
+
+            return {
+                'earliest': earliest,
+                'latest': latest
+            }
+        return None
 
 def get_latest_measurements_summary(vessel_id):
     """Get latest measurement for each parameter across all sampling points"""

@@ -8,7 +8,7 @@
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard', vessel_id=vessel.id) }}">Dashboard</a></li>
                     <li class="breadcrumb-item active">Main Engine {{ engine_num }}</li>
                 </ol>
             </nav>
@@ -150,6 +150,20 @@
 const coolingData = {{ cooling_data | tojson }};
 const coolingByParam = {};
 
+// Convert date from YYYY-MM-DD or full timestamp to dd-mm-yy format
+function formatDateForHover(dateStr) {
+    // Extract date portion if it's a full timestamp
+    const datePart = dateStr.split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+        const year = parts[0].slice(-2); // Get last 2 digits of year
+        const month = parts[1];
+        const day = parts[2];
+        return `${day}-${month}-${year}`;
+    }
+    return dateStr;
+}
+
 coolingData.forEach(m => {
     if (!coolingByParam[m.parameter_name]) {
         coolingByParam[m.parameter_name] = { dates: [], values: [], statuses: [] };
@@ -168,8 +182,27 @@ Object.keys(coolingByParam).forEach(paramName => {
         name: paramName,
         marker: {
             color: data.statuses.map(s => s === 'OKAY' ? 'green' : 'red')
-        }
+        },
+        hovertemplate: `${paramName}<br>Date: %{customdata}<br>Value: %{y}<extra></extra>`,
+        customdata: data.dates.map(d => formatDateForHover(d))
     };
+
+    // Calculate date range with 10% padding
+    const allDates = data.dates.map(d => new Date(d));
+    let minDate = new Date(Math.min(...allDates));
+    let maxDate = new Date(Math.max(...allDates));
+
+    // Add 10% padding on both sides
+    const dateRange = maxDate.getTime() - minDate.getTime();
+    const padding = dateRange * 0.10;
+    minDate = new Date(minDate.getTime() - padding);
+    maxDate = new Date(maxDate.getTime() + padding);
+
+    // Handle single date case
+    if (dateRange === 0) {
+        minDate = new Date(minDate.getTime() - 86400000);
+        maxDate = new Date(maxDate.getTime() + 86400000);
+    }
 
     const div = document.createElement('div');
     div.style.marginBottom = '20px';
@@ -177,7 +210,11 @@ Object.keys(coolingByParam).forEach(paramName => {
 
     Plotly.newPlot(div, [trace], {
         title: paramName,
-        xaxis: { title: 'Date' },
+        xaxis: {
+            title: 'Date',
+            tickformat: '%d-%m-%y',
+            range: [minDate, maxDate]
+        },
         yaxis: { title: 'Value' }
     }, { responsive: true });
 });
