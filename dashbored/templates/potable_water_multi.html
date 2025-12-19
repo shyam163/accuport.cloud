@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ system_type }} - {{ vessel.vessel_name }}{% endblock %}
+{% block title %}Potable Water - {{ vessel.vessel_name }}{% endblock %}
 
 <style>
     /* Quick Preset button styling for compact sidebar fit */
@@ -34,27 +34,16 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="row">
+    <!-- Breadcrumb and Title -->
+    <div class="row mb-3">
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('dashboard', vessel_id=vessel.id) }}">Dashboard</a></li>
-                    <li class="breadcrumb-item active">{{ system_type }}</li>
+                    <li class="breadcrumb-item active">Potable Water</li>
                 </ol>
             </nav>
-
-            <h2>
-                {% if system_type == 'Potable Water' %}
-                    <i class="bi bi-cup-straw text-info"></i>
-                {% elif system_type == 'Treated Sewage Water' %}
-                    <i class="bi bi-droplet-half text-secondary"></i>
-                {% elif system_type == 'Ballast Water' %}
-                    <i class="bi bi-water text-success"></i>
-                {% elif system_type == 'EGCS' %}
-                    <i class="bi bi-cloud text-muted"></i>
-                {% endif %}
-                {{ system_type }} Analysis
-            </h2>
+            <h2><i class="bi bi-cup-straw text-info"></i> Potable Water Analysis</h2>
             <p class="text-muted">{{ vessel.vessel_name }}</p>
         </div>
     </div>
@@ -62,6 +51,32 @@
     <div class="row">
         <!-- Left Sidebar -->
         <div class="col-md-3 col-lg-2 mb-4">
+            <!-- Sampling Point Selection -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-check2-square"></i> Select Points</h6>
+                    <div class="form-check">
+                        <input class="form-check-input pw-checkbox" type="checkbox" value="PW1" id="pw1-check" checked>
+                        <label class="form-check-label" for="pw1-check">
+                            <i class="bi bi-droplet-fill text-primary"></i> PW1: Galley
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input pw-checkbox" type="checkbox" value="PW2" id="pw2-check" checked>
+                        <label class="form-check-label" for="pw2-check">
+                            <i class="bi bi-droplet-fill text-success"></i> PW2: Accommodation
+                        </label>
+                    </div>
+                    <hr>
+                    <button class="btn btn-sm btn-outline-primary w-100 mb-2" id="select-all">
+                        <i class="bi bi-check-all"></i> Select All
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary w-100" id="deselect-all">
+                        <i class="bi bi-x-square"></i> Deselect All
+                    </button>
+                </div>
+            </div>
+
             <!-- Date Range Filter -->
             <div class="card">
                 <div class="card-body">
@@ -90,7 +105,7 @@
                         <button type="submit" class="btn btn-primary w-100 mb-2">
                             <i class="bi bi-funnel"></i> Apply Filter
                         </button>
-                        <button type="button" class="btn btn-secondary w-100 mb-3" onclick="window.location.href='{{ url_for('treated_sewage', vessel_id=vessel.id) }}'">
+                        <button type="button" class="btn btn-secondary w-100 mb-3" onclick="window.location.href='{{ url_for('potable_water', vessel_id=vessel.id) }}'">
                             <i class="bi bi-x-circle"></i> Reset
                         </button>
                     </form>
@@ -106,27 +121,20 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-6 col-lg-7 mb-4">
-            <!-- Water Quality Data (Tabular) -->
+        <div class="col-md-6 col-lg-7">
             <div class="card">
-                <div class="card-header
-                    {% if system_type == 'Potable Water' %}bg-info
-                    {% elif system_type == 'Treated Sewage Water' %}bg-secondary
-                    {% elif system_type == 'Ballast Water' %}bg-success
-                    {% elif system_type == 'EGCS' %}bg-dark
-                    {% endif %} text-white">
-                    <h5 class="mb-0"><i class="bi bi-table"></i> {{ system_type }} Parameters</h5>
-                </div>
                 <div class="card-body">
-                    {% if water_data %}
+                    {% if pw_data %}
                         <div class="table-responsive">
-                            <table class="table table-striped table-hover table-sm" id="water-table">
-                                <thead>
+                            <table class="table table-striped table-hover" id="pw-table">
+                                <thead class="table-primary">
                                     <tr>
                                         <th>Date</th>
+                                        <th>Point</th>
                                         <th>Parameter</th>
                                         <th>Value</th>
                                         <th>Unit</th>
@@ -134,45 +142,14 @@
                                         <th>Status</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {% for measurement in water_data %}
-                                    <tr data-date="{{ measurement.measurement_date[:10] }}">
-                                        <td>{{ measurement.measurement_date[:10] }}</td>
-                                        <td>{{ measurement.parameter_name }}</td>
-                                        <td><strong>{{ measurement.value }}</strong></td>
-                                        <td>{{ measurement.unit or '-' }}</td>
-                                        <td>
-                                            {% if measurement.ideal_low and measurement.ideal_high %}
-                                                {{ measurement.ideal_low }} - {{ measurement.ideal_high }}
-                                            {% else %}
-                                                -
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="badge
-                                                {% if measurement.ideal_status == 'OKAY' %}bg-success
-                                                {% elif measurement.ideal_status in ['TOO LOW', 'TOO HIGH'] %}bg-danger
-                                                {% else %}bg-warning text-dark{% endif %}">
-                                                {{ measurement.ideal_status }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+                                <tbody id="pw-table-body">
+                                    <!-- Data populated by JavaScript -->
                                 </tbody>
                             </table>
                         </div>
-
-                        <div class="mt-3">
-                            <p class="text-muted mb-0" id="measurement-count">
-                                <small>
-                                    <i class="bi bi-info-circle"></i>
-                                    Showing {{ water_data|length }} measurement(s) for {{ system_type }}
-                                </small>
-                            </p>
-                        </div>
                     {% else %}
                         <div class="alert alert-info mb-0">
-                            <i class="bi bi-info-circle"></i> No {{ system_type|lower }} data available for the selected date range.
+                            <i class="bi bi-info-circle"></i> No potable water data available for the selected date range.
                         </div>
                     {% endif %}
                 </div>
@@ -180,7 +157,7 @@
         </div>
 
         <!-- Right Sidebar -->
-        <div class="col-md-3 mb-4">
+        <div class="col-md-3 col-lg-3 mb-4">
             <!-- Vessel Selector (hidden for vessel users) -->
             {% if not current_user.is_vessel_user() %}
             <div class="card mb-3">
@@ -231,10 +208,10 @@
                 </div>
             </div>
 
-            <!-- Water System Alerts -->
+            <!-- Potable Water Alerts -->
             <div class="card border-danger">
                 <div class="card-header" style="background-color: #dc3545; color: white;">
-                    <h6 class="mb-0 text-white"><i class="bi bi-exclamation-triangle-fill"></i> {{ system_type }} Alerts</h6>
+                    <h6 class="mb-0 text-white"><i class="bi bi-exclamation-triangle-fill"></i> Potable Water Alerts</h6>
                 </div>
                 <div class="card-body">
                     {% if alerts %}
@@ -266,8 +243,67 @@
 
 {% block extra_scripts %}
 <script>
+// Vessel selector - reload page when vessel changes
+const vesselSelector = document.getElementById('vessel-selector');
+if (vesselSelector) {
+    vesselSelector.addEventListener('change', function() {
+        const newVesselId = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('vessel_id', newVesselId);
+        window.location.href = currentUrl.toString();
+    });
+}
+
+// Color palette for sampling points
+const PW_COLORS = {
+    'PW1': '#0d6efd',  // Blue
+    'PW2': '#198754'   // Green
+};
+
+// Convert date from YYYY-MM-DD or full timestamp to dd-mm-yy format
+function formatDateForHover(dateStr) {
+    const datePart = dateStr.split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+        const year = parts[0].slice(-2);
+        const month = parts[1];
+        const day = parts[2];
+        return `${day}-${month}-${year}`;
+    }
+    return dateStr;
+}
+
+// PW selection management
+const pwCheckboxes = document.querySelectorAll('.pw-checkbox');
+const selectAllBtn = document.getElementById('select-all');
+const deselectAllBtn = document.getElementById('deselect-all');
+
+selectAllBtn.addEventListener('click', () => {
+    pwCheckboxes.forEach(cb => cb.checked = true);
+    updateTable();
+});
+
+deselectAllBtn.addEventListener('click', () => {
+    pwCheckboxes.forEach(cb => cb.checked = false);
+    updateTable();
+});
+
+pwCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateTable);
+});
+
+function getSelectedPWs() {
+    return Array.from(pwCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+}
+
+// All data from backend
+const allPWData = {{ pw_data | tojson }};
+
 // Load parameter limits from backend
 const limitsData = {{ limits | tojson | safe }};
+console.log('Potable water limits loaded:', limitsData);
 
 // Normalize parameter names to match database format
 function normalizeParameterName(paramName) {
@@ -275,17 +311,32 @@ function normalizeParameterName(paramName) {
 
     // Remove LabCom test method suffixes
     normalized = normalized.replace(/\s*\(LIQ\)/gi, '');
-    normalized = normalized.replace(/\s*\(HR\)/gi, '');
+    normalized = normalized.replace(/\s*\(EL\.\)/gi, '');
+    normalized = normalized.replace(/\s*\(HR TAB\)\.?\s*/gi, ' ');
     normalized = normalized.replace(/\s*\(LR\)/gi, '');
+    normalized = normalized.replace(/\s*\(HR\)/gi, '');
+    normalized = normalized.replace(/\s*\(POW\)/gi, '');
+    normalized = normalized.replace(/\.\s*ORTHO$/gi, '');
 
     // Handle specific parameter name variations
     normalized = normalized.replace(/^PH-UNIVERSAL/gi, 'PH');
+    normalized = normalized.replace(/^PH-VALUE \(MR\)/gi, 'PH');
     normalized = normalized.replace(/^PH \(PHPCATC\)/gi, 'PH');
-    normalized = normalized.replace(/^SUSPENDED SOLIDS$/gi, 'TOTAL SUSPENDED SOLIDS');
+    normalized = normalized.replace(/^HARDN\.-\s*TOTAL/gi, 'TOTAL HARDNESS');
+    normalized = normalized.replace(/^TDS$/gi, 'TOTAL DISSOLVED SOLIDS');
+    normalized = normalized.replace(/^TURBIDITY-NTU$/gi, 'TURBIDITY');
+    normalized = normalized.replace(/^SULPHATE \(TAB\)/gi, 'SULPHATE');
+    normalized = normalized.replace(/^ALKALINITY M/gi, 'TOTAL ALKALINITY');
     normalized = normalized.replace(/^CHLORINE FREE$/gi, 'FREE CHLORINE');
     normalized = normalized.replace(/^CHLORINE TOTAL$/gi, 'TOTAL CHLORINE');
     normalized = normalized.replace(/^CHLORINE COMBINED$/gi, 'COMBINED CHLORINE');
-    normalized = normalized.replace(/^CHLORINE DIOXIDE$/gi, 'CHLORINE DIOXIDE');
+    normalized = normalized.replace(/^IRON \(LR\)/gi, 'IRON');
+    normalized = normalized.replace(/^NICKEL \(HR LIQ\)/gi, 'NICKEL');
+    normalized = normalized.replace(/^NICKEL \(HR TAB\)/gi, 'NICKEL');
+    normalized = normalized.replace(/^COPPER FREE$/gi, 'COPPER');
+    normalized = normalized.replace(/^COPPER TOTAL$/gi, 'COPPER');
+    normalized = normalized.replace(/^COPPER COMBINED$/gi, 'COPPER');
+    normalized = normalized.replace(/^COPPER FREE \(POW\)/gi, 'COPPER');
 
     // Collapse multiple spaces and trim
     normalized = normalized.replace(/\s+/g, ' ').trim().toUpperCase();
@@ -296,7 +347,9 @@ function normalizeParameterName(paramName) {
 // Populate limits sidebar
 function populateLimitsSidebar() {
     const sidebar = document.getElementById('limits-sidebar');
-    if (!sidebar || !limitsData) return;
+    if (!sidebar || !limitsData) {
+        return;
+    }
 
     const sortedParams = Object.keys(limitsData).sort();
     let html = '<div class="list-group list-group-flush">';
@@ -312,7 +365,7 @@ function populateLimitsSidebar() {
         ).join(' ');
 
         html += `
-            <div class="list-group-item px-0 py-2">
+            <div class="list-group-item p-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <span class="fw-bold text-primary" style="font-size: 0.8rem;">${displayName}</span>
                 </div>
@@ -328,56 +381,89 @@ function populateLimitsSidebar() {
     sidebar.innerHTML = html;
 }
 
-// Populate specific date dropdown from table data
-function populateSpecificDateDropdown() {
-    const table = document.getElementById('water-table');
-    if (!table) return;
+// Call on page load
+document.addEventListener('DOMContentLoaded', populateLimitsSidebar);
 
-    const rows = table.querySelectorAll('tbody tr');
-    const dates = new Set();
+function updateTable() {
+    const selectedPWs = getSelectedPWs();
+    const selectedDate = document.getElementById('specific-date').value;
+    const tableBody = document.getElementById('pw-table-body');
+    tableBody.innerHTML = '';
 
-    rows.forEach(row => {
-        const date = row.getAttribute('data-date');
-        if (date) dates.add(date);
+    // Filter data by selected sampling points
+    let filteredData = allPWData.filter(m => selectedPWs.includes(m.pw_id));
+
+    // Apply specific date filter if not "all"
+    if (selectedDate !== 'all') {
+        filteredData = filteredData.filter(m => {
+            const measurementDate = m.measurement_date.split(' ')[0]; // Get date part only
+            return measurementDate === selectedDate;
+        });
+    }
+
+    // Sort by date (newest first), then by sampling point, then by parameter
+    filteredData.sort((a, b) => {
+        const dateCompare = new Date(b.measurement_date) - new Date(a.measurement_date);
+        if (dateCompare !== 0) return dateCompare;
+
+        const pwCompare = a.pw_id.localeCompare(b.pw_id);
+        if (pwCompare !== 0) return pwCompare;
+
+        return a.parameter_name.localeCompare(b.parameter_name);
     });
 
-    const sortedDates = Array.from(dates).sort().reverse();
-    const dropdown = document.getElementById('specific-date');
+    // Populate table rows
+    filteredData.forEach(m => {
+        const row = document.createElement('tr');
 
-    sortedDates.forEach(date => {
-        const option = document.createElement('option');
-        option.value = date;
-        option.textContent = date;
-        dropdown.appendChild(option);
-    });
-}
+        // Format date as dd-mm-yy
+        const formattedDate = formatDateForHover(m.measurement_date);
 
-// Filter table by specific date
-function filterBySpecificDate(selectedDate) {
-    const table = document.getElementById('water-table');
-    if (!table) return;
+        // Determine status badge
+        let statusBadge = '<span class="badge bg-secondary">N/A</span>';
+        if (m.ideal_low && m.ideal_high) {
+            const value = parseFloat(m.value);
+            const idealLow = parseFloat(m.ideal_low);
+            const idealHigh = parseFloat(m.ideal_high);
 
-    const rows = table.querySelectorAll('tbody tr');
-    let visibleCount = 0;
-
-    rows.forEach(row => {
-        const date = row.getAttribute('data-date');
-        if (selectedDate === 'all' || date === selectedDate) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
+            if (value >= idealLow && value <= idealHigh) {
+                statusBadge = '<span class="badge bg-success">Normal</span>';
+            } else {
+                statusBadge = '<span class="badge bg-danger">Alert</span>';
+            }
         }
+
+        // Ideal range display
+        const idealRange = (m.ideal_low && m.ideal_high)
+            ? `${m.ideal_low} - ${m.ideal_high}`
+            : 'N/A';
+
+        // Color code the sampling point
+        const pwColor = PW_COLORS[m.pw_id] || '#6c757d';
+        const pwBadge = `<span class="badge" style="background-color: ${pwColor}">${m.pw_id}</span>`;
+
+        row.innerHTML = `
+            <td>${formattedDate}</td>
+            <td>${pwBadge}</td>
+            <td>${m.parameter_name}</td>
+            <td><strong>${m.value}</strong></td>
+            <td>${m.unit || ''}</td>
+            <td>${idealRange}</td>
+            <td>${statusBadge}</td>
+        `;
+
+        tableBody.appendChild(row);
     });
 
-    // Update count display
-    const countEl = document.getElementById('measurement-count');
-    if (countEl) {
-        countEl.innerHTML = `<small><i class="bi bi-info-circle"></i> Showing ${visibleCount} measurement(s)</small>`;
+    // If no data, show message
+    if (filteredData.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="7" class="text-center text-muted">No data available for selected sampling points</td>';
+        tableBody.appendChild(row);
     }
 }
 
-// Quick preset date buttons
+// Quick date presets
 document.querySelectorAll('.date-preset').forEach(btn => {
     btn.addEventListener('click', function() {
         const days = this.getAttribute('data-days');
@@ -385,7 +471,7 @@ document.querySelectorAll('.date-preset').forEach(btn => {
         let startDate;
 
         if (days === 'all') {
-            startDate = new Date('2020-01-01');
+            startDate = new Date('2000-01-01');
         } else {
             startDate = new Date();
             startDate.setDate(startDate.getDate() - parseInt(days));
@@ -396,26 +482,52 @@ document.querySelectorAll('.date-preset').forEach(btn => {
     });
 });
 
-// Specific date filter handler
-document.getElementById('specific-date').addEventListener('change', function() {
-    filterBySpecificDate(this.value);
-});
+// Populate specific date filter dropdown
+function populateSpecificDateFilter() {
+    const specificDateFilter = document.getElementById('specific-date');
+    const uniqueDates = new Set();
 
-// Vessel selector - reload page when vessel changes
-const vesselSelector = document.getElementById('vessel-selector');
-if (vesselSelector) {
-    vesselSelector.addEventListener('change', function() {
-        const newVesselId = this.value;
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('vessel_id', newVesselId);
-        window.location.href = currentUrl.toString();
+    // Get all unique dates from data
+    allPWData.forEach(m => {
+        const dateOnly = m.measurement_date.split(' ')[0]; // Get date part only (YYYY-MM-DD)
+        uniqueDates.add(dateOnly);
+    });
+
+    // Sort dates in descending order (newest first)
+    const sortedDates = Array.from(uniqueDates).sort((a, b) => {
+        return new Date(b) - new Date(a);
+    });
+
+    // Add options to dropdown with formatted dates
+    sortedDates.forEach(dateStr => {
+        const option = document.createElement('option');
+        option.value = dateStr;
+
+        // Format date as dd-mm-yy for display
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const year = parts[0].slice(-2);
+            const month = parts[1];
+            const day = parts[2];
+            option.textContent = `${day}-${month}-${year}`;
+        } else {
+            option.textContent = dateStr;
+        }
+
+        specificDateFilter.appendChild(option);
     });
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    populateLimitsSidebar();
-    populateSpecificDateDropdown();
-});
+// Specific date filter event listener
+const specificDateFilter = document.getElementById('specific-date');
+if (specificDateFilter) {
+    specificDateFilter.addEventListener('change', updateTable);
+}
+
+// Initial setup
+if (allPWData && allPWData.length > 0) {
+    populateSpecificDateFilter();
+    updateTable();
+}
 </script>
 {% endblock %}

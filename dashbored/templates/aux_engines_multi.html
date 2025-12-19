@@ -44,7 +44,7 @@
                 </ol>
             </nav>
             <h2><i class="bi bi-gear text-success"></i> Auxiliary Engines Analysis</h2>
-            <p class="text-muted">{{ vessel.vessel_name }} - {{ vessel.vessel_id }}</p>
+            <p class="text-muted">{{ vessel.vessel_name }}</p>
         </div>
     </div>
 
@@ -125,14 +125,16 @@
                 <!-- Tab Navigation -->
                 <div class="card-header p-0">
                     <ul class="nav nav-tabs nav-fill" id="ae-tabs" role="tablist">
+                        <!-- TEMPORARILY HIDDEN - Will bring back later
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="cooling-tab" data-bs-toggle="tab"
+                            <button class="nav-link" id="cooling-tab" data-bs-toggle="tab"
                                     data-bs-target="#cooling-content" type="button" role="tab">
                                 <i class="bi bi-thermometer-half"></i> Cooling Water
                             </button>
                         </li>
+                        -->
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="lube-tab" data-bs-toggle="tab"
+                            <button class="nav-link active" id="lube-tab" data-bs-toggle="tab"
                                     data-bs-target="#lube-content" type="button" role="tab">
                                 <i class="bi bi-droplet"></i> Lubricating Oil
                             </button>
@@ -143,13 +145,14 @@
                 <!-- Tab Content -->
                 <div class="card-body">
                     <div class="tab-content" id="ae-tab-content">
-                        <!-- Cooling Water Tab -->
-                        <div class="tab-pane fade show active" id="cooling-content" role="tabpanel">
+                        <!-- TEMPORARILY HIDDEN - Will bring back later
+                        <div class="tab-pane fade" id="cooling-content" role="tabpanel">
                             <div id="cooling-charts"></div>
                         </div>
+                        -->
 
                         <!-- Lubricating Oil Tab -->
-                        <div class="tab-pane fade" id="lube-content" role="tabpanel">
+                        <div class="tab-pane fade show active" id="lube-content" role="tabpanel">
                             <div class="table-responsive">
                                 <table class="table table-striped table-hover" id="lube-oil-table">
                                     <thead>
@@ -216,7 +219,7 @@
             <!-- Auxiliary Engine Alerts -->
             <div class="card border-danger">
                 <div class="card-header" style="background-color: #dc3545; color: white;">
-                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Aux Engine Alerts</h6>
+                    <h6 class="mb-0 text-white"><i class="bi bi-exclamation-triangle-fill"></i> Aux Engine Alerts</h6>
                 </div>
                 <div class="card-body">
                     {% if alerts %}
@@ -249,6 +252,61 @@
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}"></script>
 <script>
+// Load parameter limits from backend
+const limitsData = {{ limits | tojson | safe }};
+
+// Normalize parameter names to match database format
+function normalizeParameterName(paramName) {
+    let normalized = paramName;
+    normalized = normalized.replace(/\s*\(.*?\)/g, '');
+    normalized = normalized.replace(/^PH$/i, 'PH');
+    normalized = normalized.replace(/\s+/g, ' ').trim().toUpperCase();
+    return normalized;
+}
+
+// Get limit shapes for a parameter
+function getLimitShapes(paramName) {
+    const normalized = normalizeParameterName(paramName);
+    const limits = limitsData[normalized];
+    const shapes = [];
+    
+    if (limits) {
+        // Lower limit line (orange)
+        shapes.push({
+            type: 'line',
+            xref: 'paper',
+            x0: 0,
+            x1: 1,
+            yref: 'y',
+            y0: limits.lower_limit,
+            y1: limits.lower_limit,
+            line: { color: '#fd7e14', width: 2, dash: 'dash' }
+        });
+        // Upper limit line (orange)
+        shapes.push({
+            type: 'line',
+            xref: 'paper',
+            x0: 0,
+            x1: 1,
+            yref: 'y',
+            y0: limits.upper_limit,
+            y1: limits.upper_limit,
+            line: { color: '#fd7e14', width: 2, dash: 'dash' }
+        });
+    }
+    return shapes;
+}
+
+// Get limits text for subtitle
+function getLimitsText(paramName) {
+    const normalized = normalizeParameterName(paramName);
+    const limits = limitsData[normalized];
+    if (limits) {
+        return ` | <strong>Limits:</strong> ${limits.lower_limit} - ${limits.upper_limit}`;
+    }
+    return '';
+}
+
 // Vessel selector - reload page when vessel changes
 const vesselSelector = document.getElementById('vessel-selector');
 if (vesselSelector) {
@@ -310,6 +368,64 @@ function getSelectedEngines() {
 const allCoolingData = {{ all_engines_data | tojson }};
 const allLubeData = {{ all_engines_data | tojson }};
 
+// Normalize datetime to date-only string (YYYY-MM-DD)
+function normalizeDate(dateStr) {
+    if (!dateStr) return dateStr;
+    // Handle both "YYYY-MM-DD HH:MM:SS" and ISO formats
+    return dateStr.split(' ')[0].split('T')[0];
+}
+
+// Adaptive tick configuration based on date range span
+function getAdaptiveTickConfig(uniqueDates, minDate, maxDate) {
+    const dateCount = uniqueDates.length;
+    const daySpan = (new Date(maxDate) - new Date(minDate)) / (1000 * 60 * 60 * 24);
+
+    let tickvals, ticktext;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    if (dateCount <= 10) {
+        // Show all dates if 10 or fewer
+        tickvals = uniqueDates.map(d => d.toISOString().split('T')[0]);
+        ticktext = uniqueDates.map(d => `${monthNames[d.getMonth()]} ${d.getDate()}`);
+    } else if (daySpan <= 31) {
+        // ~1 month: show ~7 evenly spaced ticks
+        tickvals = [];
+        ticktext = [];
+        const step = Math.ceil(dateCount / 7);
+        for (let i = 0; i < uniqueDates.length; i += step) {
+            const d = uniqueDates[i];
+            tickvals.push(d.toISOString().split('T')[0]);
+            ticktext.push(`${monthNames[d.getMonth()]} ${d.getDate()}`);
+        }
+    } else if (daySpan <= 180) {
+        // 1-6 months: show monthly ticks
+        tickvals = [];
+        ticktext = [];
+        let lastMonth = -1;
+        uniqueDates.forEach(d => {
+            if (d.getMonth() !== lastMonth) {
+                tickvals.push(d.toISOString().split('T')[0]);
+                ticktext.push(`${monthNames[d.getMonth()]} ${d.getDate()}`);
+                lastMonth = d.getMonth();
+            }
+        });
+    } else {
+        // > 6 months: show monthly ticks with year
+        tickvals = [];
+        ticktext = [];
+        let lastMonth = -1;
+        uniqueDates.forEach(d => {
+            if (d.getMonth() !== lastMonth) {
+                tickvals.push(d.toISOString().split('T')[0]);
+                ticktext.push(`${monthNames[d.getMonth()]} '${d.getFullYear().toString().slice(-2)}`);
+                lastMonth = d.getMonth();
+            }
+        });
+    }
+
+    return { tickvals, ticktext };
+}
+
 function updateCharts() {
     const selectedEngines = getSelectedEngines();
     updateCoolingCharts(selectedEngines);
@@ -317,7 +433,8 @@ function updateCharts() {
 }
 
 function updateCoolingCharts(selectedEngines) {
-    const coolingContainer = document.getElementById('cooling-charts');
+    const coolingContainer = document.getElementById("cooling-charts");
+    if (!coolingContainer) return;
     coolingContainer.innerHTML = '';
 
     // Organize cooling data by parameter
@@ -338,9 +455,16 @@ function updateCoolingCharts(selectedEngines) {
 
     // Create a chart for each parameter
     Object.keys(coolingByParam).forEach(paramName => {
-        const div = document.createElement('div');
-        div.style.marginBottom = '30px';
-        coolingContainer.appendChild(div);
+        // Create container for heading + plot
+        const container = document.createElement('div');
+        container.style.marginBottom = '40px';
+        coolingContainer.appendChild(container);
+
+        // Create heading
+        const heading = document.createElement('h5');
+        heading.className = 'text-primary mb-2';
+        heading.textContent = paramName;
+        container.appendChild(heading);
 
         const paramInfo = coolingByParam[paramName];
         const traces = [];
@@ -350,7 +474,7 @@ function updateCoolingCharts(selectedEngines) {
             if (paramInfo.engines[engineNum]) {
                 const data = paramInfo.engines[engineNum];
                 traces.push({
-                    x: data.map(m => m.measurement_date),
+                    x: data.map(m => normalizeDate(m.measurement_date)),
                     y: data.map(m => parseFloat(m.value)),
                     mode: 'lines+markers',
                     name: `AE${engineNum}`,
@@ -394,28 +518,68 @@ function updateCoolingCharts(selectedEngines) {
             .map(timestamp => new Date(timestamp))
             .sort((a, b) => a - b);
 
-        const tickvals = uniqueDates.map(d => d.toISOString().split('T')[0]);
-        const ticktext = uniqueDates.map(d => {
-            const day = String(d.getDate()).padStart(2, '0');
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const year = String(d.getFullYear()).slice(-2);
-            return `${day}-${month}-${year}`;
-        });
+        // Get adaptive tick configuration
+        const { tickvals, ticktext } = getAdaptiveTickConfig(uniqueDates, minDate, maxDate);
+
+        // Create subtitle with last test date
+        const subtitle = document.createElement('div');
+        subtitle.className = 'text-muted mb-3';
+        subtitle.style.fontSize = '0.95rem';
+        subtitle.innerHTML = `Last Test Date: ${lastTestDateStr}${getLimitsText(paramName)}`;
+        container.appendChild(subtitle);
+
+        // Create plot div with expand button wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'position-relative mb-3';
+
+        const chartId = `chart-${paramName.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'btn btn-sm btn-outline-secondary position-absolute';
+        expandBtn.style.cssText = 'top:5px; right:5px; z-index:10;';
+        expandBtn.title = 'Expand chart';
+        expandBtn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
+        expandBtn.onclick = function() { expandChart(chartId, paramName); };
+
+        const div = document.createElement('div');
+        div.id = chartId;
+
+        wrapper.appendChild(expandBtn);
+        wrapper.appendChild(div);
+        container.appendChild(wrapper);
 
         const layout = {
-            title: `${paramName}, Last Test Date ${lastTestDateStr}`,
+            title: '',
             xaxis: {
                 title: 'Date',
                 tickmode: 'array',
                 tickvals: tickvals,
                 ticktext: ticktext,
-                range: [minDate, maxDate]
+                tickangle: -45,
+                range: [minDate, maxDate],
+                showgrid: false,
+                showline: true,
+                linewidth: 1,
+                linecolor: '#888',
+                mirror: false,
+                zeroline: false
             },
-            yaxis: { title: `${paramName} (${paramInfo.unit})` },
-            hovermode: 'closest'
+            yaxis: {
+                title: `${paramName} (${paramInfo.unit})`,
+                showgrid: false,
+                showline: true,
+                linewidth: 1,
+                linecolor: '#888',
+                mirror: false,
+                zeroline: false
+            },
+            hovermode: 'closest',
+            shapes: getLimitShapes(paramName),
+            plot_bgcolor: '#f8f9fa',
+            paper_bgcolor: '#f8f9fa'
         };
 
-        Plotly.newPlot(div, traces, layout, { responsive: true });
+        Plotly.newPlot(div, traces, layout, { responsive: true, displayModeBar: false });
     });
 }
 

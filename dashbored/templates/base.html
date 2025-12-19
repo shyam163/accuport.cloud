@@ -18,8 +18,8 @@
     <!-- Preload critical font files for instant icon rendering -->
     <link rel="preload" href="{{ url_for('static', filename='fonts/bootstrap-icons.woff2') }}" as="font" type="font/woff2" crossorigin>
 
-    <!-- Bootstrap 5 CSS - Lux Theme -->
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=lux_20251210" rel="stylesheet">
+    <!-- Bootstrap 5 CSS - Cerulean Theme -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}?v=cerulean_20251216" rel="stylesheet">
 
     <!-- Bootstrap Icons - Local with font-display swap -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}">
@@ -29,7 +29,7 @@
     <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-theme.css') }}?v=20251124b"> -->
 
     <style>
-        /* Override Bootstrap Lux theme uppercase transformation for navbar brand */
+        /* Ensure navbar brand text is not transformed to uppercase */
         .navbar-brand {
             text-transform: none !important;
         }
@@ -72,7 +72,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard', vessel_id=session.get('selected_vessel_id')) }}">
-                <img src="{{ url_for('static', filename='img/minilogo.jpg') }}" alt="AccuPort Logo"> AccuPort.Cloud
+                <img src="{{ url_for('static', filename='img/minilogo.png') }}" alt="AccuPort Logo"> Accu-Port Cloud
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -136,6 +136,11 @@
                         </button>
                         <button id="syncAllButton" class="btn btn-outline-sync-primary ms-2" onclick="syncAllData()">
                             <i class="bi bi-cloud-arrow-up"></i> Sync All
+                        </button>
+                    </li>
+                    <li class="nav-item me-2">
+                        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#reportModal">
+                            <i class="bi bi-file-earmark-pdf"></i> Report
                         </button>
                     </li>
                     {% endif %}
@@ -320,5 +325,276 @@ async function syncAllData() {
     }
 }
 </script>
+
+<!-- Fullscreen Chart Modal -->
+<div class="modal fade" id="chartModal" tabindex="-1">
+  <div class="modal-dialog" style="width: 100vw; max-width: 100vw; height: 100vh; margin: 0;">
+    <div class="modal-content" style="height: 100vh; border: 0; border-radius: 0;">
+      <div class="modal-header py-2" style="border-radius: 0;">
+        <h5 class="modal-title" id="chartModalTitle">Chart</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3" style="height: calc(100vh - 56px); overflow: hidden;">
+        <div id="chartModalContent" style="width: 100%; height: 100%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Function to expand chart to fullscreen modal
+function expandChart(sourceDiv, title) {
+    const source = document.getElementById(sourceDiv);
+    if (!source || !source.data) {
+        console.error('Chart not found or not initialized:', sourceDiv);
+        return;
+    }
+
+    const data = source.data;
+    const layout = JSON.parse(JSON.stringify(source.layout));
+
+    document.getElementById('chartModalTitle').textContent = title || 'Chart';
+
+    const modal = new bootstrap.Modal(document.getElementById('chartModal'));
+    modal.show();
+
+    // Render chart after modal is shown (to get correct dimensions)
+    document.getElementById('chartModal').addEventListener('shown.bs.modal', function handler() {
+        const modalBody = document.querySelector('#chartModal .modal-body');
+        const chartContainer = document.getElementById('chartModalContent');
+
+        // Adjust layout for fullscreen - use modal body dimensions
+        layout.autosize = false;
+        layout.width = modalBody.clientWidth - 20;
+        layout.height = modalBody.clientHeight - 20;
+        layout.margin = { t: 50, r: 50, b: 80, l: 80 };
+
+        Plotly.newPlot(chartContainer, data, layout, { responsive: true, displayModeBar: false });
+        this.removeEventListener('shown.bs.modal', handler);
+    });
+}
+
+// Clean up chart when modal is closed
+document.addEventListener('DOMContentLoaded', function() {
+    const chartModal = document.getElementById('chartModal');
+    if (chartModal) {
+        chartModal.addEventListener('hidden.bs.modal', function() {
+            Plotly.purge('chartModalContent');
+        });
+    }
+});
+</script>
+
+
+    <!-- Report Generation Modal -->
+    <!-- Report Generation Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="reportModalLabel">
+                        <i class="bi bi-file-earmark-pdf"></i> Generate PDF Report
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="report-form">
+                        <!-- Vessel Selector -->
+                        <div class="mb-3">
+                            <label for="report-vessel" class="form-label fw-bold">Vessel</label>
+                            <select class="form-select" id="report-vessel" required>
+                                {% if vessels %}
+                                    {% for vessel in vessels %}
+                                    <option value="{{ vessel.id }}" {% if session.get('selected_vessel_id') == vessel.id %}selected{% endif %}>
+                                        {{ vessel.vessel_name }}
+                                    </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        
+                        <!-- Date Range Presets -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Date Range</label>
+                            <div class="btn-group w-100 mb-2" role="group">
+                                <button type="button" class="btn btn-outline-primary report-date-preset" data-days="7">7 Days</button>
+                                <button type="button" class="btn btn-outline-primary report-date-preset active" data-days="30">30 Days</button>
+                                <button type="button" class="btn btn-outline-primary report-date-preset" data-days="90">90 Days</button>
+                                <button type="button" class="btn btn-outline-primary report-date-preset" data-days="365">1 Year</button>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label for="report-start-date" class="form-label small text-muted">Start Date</label>
+                                    <input type="date" class="form-control" id="report-start-date" required>
+                                </div>
+                                <div class="col-6">
+                                    <label for="report-end-date" class="form-label small text-muted">End Date</label>
+                                    <input type="date" class="form-control" id="report-end-date" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Section Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Include Sections</label>
+                            <div class="form-check">
+                                <input class="form-check-input section-check" type="checkbox" value="boiler" id="section-boiler" checked>
+                                <label class="form-check-label" for="section-boiler">
+                                    <i class="bi bi-droplet-fill text-primary"></i> Boiler Water
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input section-check" type="checkbox" value="main_engines" id="section-me" checked>
+                                <label class="form-check-label" for="section-me">
+                                    <i class="bi bi-gear-fill text-primary"></i> Main Engines
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input section-check" type="checkbox" value="aux_engines" id="section-ae" checked>
+                                <label class="form-check-label" for="section-ae">
+                                    <i class="bi bi-gear text-success"></i> Auxiliary Engines
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input section-check" type="checkbox" value="potable_water" id="section-pw">
+                                <label class="form-check-label" for="section-pw">
+                                    <i class="bi bi-cup-straw"></i> Potable Water
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input section-check" type="checkbox" value="treated_sewage" id="section-sw">
+                                <label class="form-check-label" for="section-sw">
+                                    <i class="bi bi-droplet"></i> Treated Sewage
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input section-check" type="checkbox" value="alerts" id="section-alerts" checked>
+                                <label class="form-check-label" for="section-alerts">
+                                    <i class="bi bi-exclamation-triangle text-danger"></i> Alerts Summary
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="generate-report-btn">
+                        <i class="bi bi-download"></i> Generate & Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Generation Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Date preset handling
+        function setDateRange(days) {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+            
+            const endInput = document.getElementById('report-end-date');
+            const startInput = document.getElementById('report-start-date');
+            if (endInput && startInput) {
+                endInput.value = endDate.toISOString().split('T')[0];
+                startInput.value = startDate.toISOString().split('T')[0];
+            }
+        }
+        
+        // Initialize with 30 days
+        setDateRange(30);
+        
+        // Date preset buttons
+        document.querySelectorAll('.report-date-preset').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.report-date-preset').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                setDateRange(parseInt(this.dataset.days));
+            });
+        });
+        
+        // When date inputs change manually, remove preset active state
+        ['report-start-date', 'report-end-date'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('change', function() {
+                    document.querySelectorAll('.report-date-preset').forEach(b => b.classList.remove('active'));
+                });
+            }
+        });
+        
+        // Generate report button
+        const generateBtn = document.getElementById('generate-report-btn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', async function() {
+                const btn = this;
+                const originalText = btn.innerHTML;
+                
+                // Get selected vessel
+                const vesselSelect = document.getElementById('report-vessel');
+                const vesselId = vesselSelect ? vesselSelect.value : null;
+                
+                // Get selected sections
+                const sections = Array.from(document.querySelectorAll('.section-check:checked'))
+                    .map(cb => cb.value);
+                
+                if (sections.length === 0) {
+                    alert('Please select at least one section');
+                    return;
+                }
+                
+                // Show loading state
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+                
+                try {
+                    const response = await fetch('/api/generate-report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            vessel_id: vesselId,
+                            start_date: document.getElementById('report-start-date').value,
+                            end_date: document.getElementById('report-end-date').value,
+                            sections: sections
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error || 'Failed to generate report');
+                    }
+                    
+                    // Download the PDF
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const disposition = response.headers.get('Content-Disposition');
+                    let filename = 'report.pdf';
+                    if (disposition && disposition.includes('filename=')) {
+                        filename = disposition.split('filename=')[1].replace(/"/g, '');
+                    }
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('reportModal'));
+                    if (modal) modal.hide();
+                } catch (error) {
+                    alert('Error generating report: ' + error.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            });
+        }
+    });
+    </script>
+
 </body>
 </html>

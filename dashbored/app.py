@@ -2,11 +2,12 @@
 Accuport Dashboard - Main Flask Application
 Marine chemical test solutions dashboard for vessel and fleet managers
 """
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
 import os
 import sys
+import io
 import subprocess
 import logging
 
@@ -25,10 +26,13 @@ from models import (
     get_sampling_point_by_code,
     get_all_measurements_for_troubleshooting,
     get_all_sampling_points_for_troubleshooting,
-    get_all_parameters_for_troubleshooting
+    get_all_parameters_for_troubleshooting,
+    get_parameter_limits,
+    get_all_limits_for_equipment,
+    recalculate_alerts_for_vessel
 )
 from admin_models import (
-    create_user, get_all_users, update_user_status,
+    create_user, get_all_users, update_user_status, change_user_password,
     create_vessel, get_all_vessels_with_tokens, get_vessel_auth_token,
     assign_vessel_to_user, unassign_vessel_from_user, get_user_vessel_assignments,
     assign_vessel_manager_to_fleet_manager, unassign_vessel_manager_from_fleet_manager,
@@ -37,6 +41,7 @@ from admin_models import (
 )
 from vessel_details_models import get_vessel_details, update_vessel_details, get_vessel_details_for_display
 from database import get_accubase_connection, get_accubase_write_connection, get_users_connection
+from page_report_utils import generate_main_engine_sd_report
 import yaml
 import re
 
@@ -106,6 +111,17 @@ def update_vessels_config_yaml(vessel_id, vessel_name, auth_token):
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
     return True
 
+
+
+# Context processor to make vessels available to all templates
+@app.context_processor
+def inject_vessels():
+    """Make accessible vessels available to all templates"""
+    if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+        vessel_ids = current_user.get_accessible_vessels()
+        vessels = get_vessels_by_ids(vessel_ids)
+        return {'vessels': vessels}
+    return {'vessels': []}
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -421,12 +437,23 @@ def boiler_water_multi():
               if any(keyword in alert.get('sampling_point_name', '').upper()
                      for keyword in ['BOILER', 'AB', 'HOTWELL', 'EGE'])]
 
+    # Get parameter limits from users.sqlite
+    aux_boiler_limits = get_all_limits_for_equipment('AUX BOILER & EGE')
+    hotwell_limits = get_all_limits_for_equipment('HOTWELL')
+
+    # Combine into single dict for template
+    all_limits = {
+        'AUX BOILER & EGE': aux_boiler_limits,
+        'HOTWELL': hotwell_limits
+    }
+
     vessel_specs = get_vessel_details_for_display(vessel_id, 'boiler')
     return render_template('boiler_water_multi.html',
                           vessels=vessels,
                           vessel=vessel,
                           boiler_data=boiler_data,
                           alerts=alerts,
+                          limits=all_limits,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime("%Y-%m-%d"),
                           vessel_specs=vessel_specs)
@@ -490,6 +517,9 @@ def central_cooling():
               if any(keyword in alert.get('sampling_point_name', '').upper()
                      for keyword in ['COOLING', 'HT', 'LT'])]
 
+    # Get parameter limits from users.sqlite
+    cooling_limits = get_all_limits_for_equipment('HT & LT COOLING WATER')
+
     vessel_specs = get_vessel_details_for_display(vessel_id, 'water_systems')
     return render_template('central_cooling.html',
                           vessels=vessels,
@@ -498,7 +528,8 @@ def central_cooling():
                           alerts=alerts,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime("%Y-%m-%d"),
-                          vessel_specs=vessel_specs)
+                          vessel_specs=vessel_specs,
+                          limits=cooling_limits)
 
 @app.route('/equipment/main-engines')
 @login_required
@@ -580,6 +611,9 @@ def main_engines_multi():
     
     # Get scavenge drain data availability
     scavenge_data_range = get_scavenge_drain_data_date_range(vessel_id)
+    # Get parameter limits for cooling water
+    cooling_limits = get_all_limits_for_equipment('HT & LT COOLING WATER')
+    
     return render_template('main_engine_multi.html',
                           vessels=vessels,
                           vessel=vessel,
@@ -590,7 +624,8 @@ def main_engines_multi():
                           vessel_specs=vessel_specs,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime('%Y-%m-%d'),
-                          scavenge_data_range=scavenge_data_range)
+                          scavenge_data_range=scavenge_data_range,
+                          limits=cooling_limits)
 
 @app.route('/equipment/main-engine/<int:engine_num>')
 @login_required
@@ -723,6 +758,9 @@ def aux_engines():
                  'AUX ENGINE' in alert.get('sampling_point_name', '').upper()]
 
     vessel_specs = get_vessel_details_for_display(vessel_id, 'aux_engines')
+    # Get parameter limits for cooling water
+    cooling_limits = get_all_limits_for_equipment('HT & LT COOLING WATER')
+    
     return render_template('aux_engines_multi.html',
                           vessels=vessels,
                           vessel=vessel,
@@ -730,7 +768,8 @@ def aux_engines():
                           alerts=alerts,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime("%Y-%m-%d"),
-                          vessel_specs=vessel_specs)
+                          vessel_specs=vessel_specs,
+                          limits=cooling_limits)
 
 @app.route('/equipment/potable-water')
 @login_required
@@ -765,10 +804,21 @@ def potable_water():
 
     # Potable water parameters
     water_params = [
-        'pH', 'Total Alkalinity', 'Turbidity', 'Total Dissolved Solids',
-        'Total Hardness CaCO3', 'Conductivity', 'Chlorine', 'Sulphate',
-        'Total Chlorine', 'Iron', 'Lead', 'Nickel', 'Zinc', 'Cadmium',
-        'Copper', 'Permanganate Value', 'E. coli'
+        'pH', 'pH-Value', 'pH (pHPCATC)',
+        'Alkalinity M', 'Alkalinity M (HR tab)',
+        'Turbidity', 'Turbidity-NTU',
+        'TDS', 'Total Dissolved Solids',
+        'Hardn.- Total', 'Hardn.- Total (HR)', 'Hardn.- Total (LR)',
+        'Conductivity',
+        'Chloride', 'Chloride (Liq)',
+        'Chlorine free', 'Chlorine total', 'Chlorine combined',
+        'Sulphate', 'Sulphate (tab)',
+        'Iron', 'Iron (LR)',
+        'Lead', 'Nickel', 'Nickel (HR liq)', 'Nickel (HR tab)',
+        'Zinc', 'Cadmium',
+        'Copper', 'Copper free', 'Copper total', 'Copper combined',
+        'Permanganate', 'Permanganate TT',
+        'E. coli', 'Temperature'
     ]
 
     # Get data for both PW1 and PW2
@@ -790,6 +840,9 @@ def potable_water():
               if 'POTABLE' in alert.get('sampling_point_name', '').upper() or
                  'DRINKING' in alert.get('sampling_point_name', '').upper()]
 
+    # Get parameter limits for potable water
+    limits = get_all_limits_for_equipment('POTABLE WATER')
+
     vessel_specs = get_vessel_details_for_display(vessel_id, 'water_systems')
     return render_template('potable_water_multi.html',
                           vessels=vessels,
@@ -798,7 +851,8 @@ def potable_water():
                           alerts=alerts,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime('%Y-%m-%d'),
-                          vessel_specs=vessel_specs)
+                          vessel_specs=vessel_specs,
+                          limits=limits)
 
 @app.route('/equipment/treated-sewage')
 @login_required
@@ -843,6 +897,9 @@ def treated_sewage():
                  'GREY' in alert.get('sampling_point_name', '').upper() or
                  'GRAY' in alert.get('sampling_point_name', '').upper()]
 
+    # Get parameter limits for sewage
+    limits = get_all_limits_for_equipment('SEWAGE')
+
     vessel_specs = get_vessel_details_for_display(vessel_id, 'water_systems')
     return render_template('water_system.html',
                           vessels=vessels,
@@ -852,7 +909,8 @@ def treated_sewage():
                           alerts=alerts,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime('%Y-%m-%d'),
-                          vessel_specs=vessel_specs)
+                          vessel_specs=vessel_specs,
+                          limits=limits)
 
 @app.route('/equipment/ballast-water')
 @login_required
@@ -909,7 +967,8 @@ def ballast_water():
                           alerts=alerts,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime('%Y-%m-%d'),
-                          vessel_specs=vessel_specs)
+                          vessel_specs=vessel_specs,
+                          limits={})
 
 @app.route('/equipment/egcs')
 @login_required
@@ -967,7 +1026,8 @@ def egcs():
                           alerts=alerts,
                           start_date=start_date.strftime('%Y-%m-%d'),
                           end_date=end_date.strftime('%Y-%m-%d'),
-                          vessel_specs=vessel_specs)
+                          vessel_specs=vessel_specs,
+                          limits={})
 
 
 # ============================================================================
@@ -1292,7 +1352,7 @@ def admin_dashboard():
     all_vessels = get_all_vessels_with_tokens()
     recent_audit_log = get_audit_log(limit=50)
     unassigned_managers = get_unassigned_vessel_managers()
-    
+
     return render_template('admin_dashboard.html',
                           all_users=all_users,
                           all_vessels=all_vessels,
@@ -1432,6 +1492,27 @@ def api_toggle_user_status():
     
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/api/admin/change-user-password', methods=['POST'])
+@admin_required
+def api_change_user_password():
+    """Change user password to a specified password"""
+    data = request.form
+    user_id = int(data.get('user_id'))
+    new_password = data.get('new_password')
+
+    if not new_password:
+        flash('Password cannot be empty', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    result = change_user_password(user_id, new_password, current_user.id)
+
+    if result['success']:
+        flash(f'Password changed successfully for user: {result["username"]}', 'success')
+    else:
+        flash(f'Failed to change password: {result.get("error", "Unknown error")}', 'danger')
+
+    return redirect(url_for('admin_dashboard'))
+
 # ============================================================================
 # API ENDPOINTS (for AJAX data fetching)
 # ============================================================================
@@ -1445,6 +1526,51 @@ def api_sampling_points(vessel_id):
 
     sampling_points = get_sampling_points_by_vessel(vessel_id)
     return jsonify(sampling_points)
+
+
+@app.route('/api/reports/main-engine-sd-pdf')
+@login_required
+def api_main_engine_sd_pdf():
+    """Generate PDF report for Main Engine Scavenge Drain page"""
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    selected_engines = request.args.getlist('engines')
+    selected_cylinders = request.args.getlist('cylinders')
+
+    # Validate vessel access
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+
+    # Parse dates
+    try:
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        else:
+            start_date = datetime.now() - timedelta(days=30)
+
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        else:
+            end_date = datetime.now()
+    except ValueError:
+        abort(400, "Invalid date format. Use YYYY-MM-DD")
+
+    # Generate PDF
+    try:
+        buffer, filename = generate_main_engine_sd_report(
+            vessel_id, start_date, end_date, selected_engines, selected_cylinders
+        )
+
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        app.logger.error(f"Error generating Main Engine SD PDF: {str(e)}")
+        abort(500, f"Error generating PDF: {str(e)}")
 
 # ============================================================================
 
@@ -1557,8 +1683,100 @@ def sync_all_vessels():
     })
 
 
+
+# ============================================================================
+# REPORT GENERATION API
+# ============================================================================
+
+@app.route('/api/generate-report', methods=['POST'])
+@login_required
+def api_generate_report():
+    """Generate PDF report for specified vessel"""
+    from datetime import datetime
+    from generate_vessel_report import generate_report_bytes, AVAILABLE_SECTIONS
+    
+    data = request.get_json()
+    
+    # Get vessel_id from request body or fall back to session
+    vessel_id = data.get('vessel_id') or session.get('selected_vessel_id')
+    if vessel_id:
+        vessel_id = int(vessel_id)
+    
+    if not vessel_id:
+        return jsonify({'error': 'No vessel selected'}), 400
+    
+    if not current_user.can_access_vessel(vessel_id):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    try:
+        data = request.get_json()
+        
+        # Parse dates
+        start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d')
+        end_date = datetime.strptime(data.get('end_date'), '%Y-%m-%d')
+        
+        # Get selected sections (default to all if not specified)
+        sections = data.get('sections', list(AVAILABLE_SECTIONS.keys()))
+        
+        # Get vessel info
+        vessel = get_vessel_by_id(vessel_id)
+        if not vessel:
+            return jsonify({'error': 'Vessel not found'}), 404
+        
+        # Generate report
+        pdf_bytes = generate_report_bytes(
+            vessel_id=vessel_id,
+            vessel_name=vessel['vessel_name'],
+            start_date=start_date,
+            end_date=end_date,
+            selected_sections=sections
+        )
+        
+        # Create filename
+        filename = f"{vessel['vessel_name'].replace(' ', '_')}_Report_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        
+        # Return as downloadable file
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except ValueError as e:
+        return jsonify({'error': f'Invalid date format: {str(e)}'}), 400
+    except Exception as e:
+        app.logger.error(f"Report generation failed: {str(e)}")
+        return jsonify({'error': f'Report generation failed: {str(e)}'}), 500
+
+
 # ERROR HANDLERS
 # ============================================================================
+
+
+@app.route('/recalculate_alerts', methods=['POST'])
+@login_required
+def recalculate_vessel_alerts():
+    """
+    Recalculate alerts for current vessel using new parameter limits from users.sqlite
+    """
+    vessel_id = session.get('selected_vessel_id')
+    if not vessel_id:
+        return jsonify({'success': False, 'message': 'No vessel selected'}), 400
+    
+    try:
+        result = recalculate_alerts_for_vessel(vessel_id)
+        return jsonify({
+            'success': True,
+            'message': f"Recalculated alerts: {result['alerts_created']} created, {result['alerts_resolved']} resolved",
+            'details': result
+        })
+    except Exception as e:
+        app.logger.error(f"Alert recalculation failed: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Alert recalculation failed: {str(e)}'
+        }), 500
 
 @app.errorhandler(404)
 def not_found(error):

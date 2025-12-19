@@ -1,7 +1,7 @@
 """
 Data models and queries for Accuport Dashboard
 """
-from database import get_accubase_connection, get_users_connection, dict_from_row, list_from_rows
+from database import get_accubase_connection, get_accubase_write_connection, get_users_connection, dict_from_row, list_from_rows
 from datetime import datetime, timedelta
 
 # ============================================================================
@@ -518,3 +518,273 @@ def get_all_parameters_for_troubleshooting():
             ORDER BY category, name
         ''')
         return list_from_rows(cursor.fetchall())
+
+# ============================================================================
+# PARAMETER LIMITS QUERIES (users.sqlite)
+# ============================================================================
+
+def get_parameter_limits(equipment_type, parameter_name):
+    """
+    Get limits for a specific equipment type and parameter
+
+    Args:
+        equipment_type: Equipment type string (e.g., 'AUX BOILER & EGE', 'HOTWELL')
+        parameter_name: Parameter name (e.g., 'PH', 'PHOSPHATE')
+
+    Returns:
+        dict with 'lower_limit' and 'upper_limit' keys, or None if not found
+    """
+    with get_users_connection() as conn:
+        cursor = conn.cursor()
+
+        # Normalize inputs to uppercase for case-insensitive matching
+        equipment_type = equipment_type.upper()
+        parameter_name = parameter_name.upper()
+
+        cursor.execute('''
+            SELECT lower_limit, upper_limit
+            FROM parameter_limits
+            WHERE equipment_type = ? AND parameter_name = ?
+        ''', (equipment_type, parameter_name))
+
+        row = cursor.fetchone()
+
+        if row:
+            return {
+                'lower_limit': row[0],
+                'upper_limit': row[1]
+            }
+        return None
+
+def get_all_limits_for_equipment(equipment_type):
+    """
+    Get all parameter limits for an equipment type
+
+    Args:
+        equipment_type: Equipment type string (e.g., 'AUX BOILER & EGE', 'HOTWELL')
+
+    Returns:
+        dict mapping parameter_name -> {'lower_limit': x, 'upper_limit': y}
+    """
+    with get_users_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT parameter_name, lower_limit, upper_limit
+            FROM parameter_limits
+            WHERE equipment_type = ?
+        ''', (equipment_type.upper(),))
+
+        limits_dict = {}
+        for row in cursor.fetchall():
+            limits_dict[row[0]] = {
+                'lower_limit': row[1],
+                'upper_limit': row[2]
+            }
+
+        return limits_dict
+
+
+def recalculate_alerts_for_vessel(vessel_id):
+    """
+    Recalculate alerts for a vessel using parameter_limits from users.sqlite
+    instead of old LabCom ideal_low/ideal_high values.
+    
+    Returns dict with counts of alerts created/resolved/checked.
+    """
+    import sqlite3
+    from datetime import datetime
+    
+    # Get parameter limits from users.sqlite
+    with get_users_connection() as users_conn:
+        users_cursor = users_conn.cursor()
+        users_cursor.execute('''
+            SELECT equipment_type, parameter_name, lower_limit, upper_limit
+            FROM parameter_limits
+        ''')
+        
+        # Build limits lookup: {EQUIPMENT_TYPE: {PARAMETER_NAME: {lower, upper}}}
+        limits_by_equipment = {}
+        for row in users_cursor.fetchall():
+            equipment_type, param_name, lower, upper = row
+            if equipment_type not in limits_by_equipment:
+                limits_by_equipment[equipment_type] = {}
+            limits_by_equipment[equipment_type][param_name] = {
+                'lower': lower,
+                'upper': upper
+            }
+    
+    # Equipment type mapping based on sampling point names
+    def get_equipment_type(sampling_point_name):
+        """Map sampling point name to equipment type for limits lookup"""
+        sp_upper = sampling_point_name.upper()
+        
+        if 'HOTWELL' in sp_upper or 'HOT WELL' in sp_upper:
+            return 'HOTWELL'
+        elif any(x in sp_upper for x in ['AUX BOILER', 'AB1', 'AB2', 'EGE', 'COMPOSITE BOILER', 'CB ']):
+            return 'AUX BOILER & EGE'
+        elif 'COOLING' in sp_upper or 'HT' in sp_upper or 'LT' in sp_upper:
+            return 'HT & LT COOLING WATER'
+        elif 'POTABLE' in sp_upper or 'DRINKING' in sp_upper:
+            return 'POTABLE WATER'
+        elif 'SEWAGE' in sp_upper or 'GREY' in sp_upper or 'GRAY' in sp_upper:
+            return 'SEWAGE'
+        
+        return None
+    
+    # Parameter name normalization (strip LabCom suffixes)
+    def normalize_parameter_name(param_name):
+        """Normalize parameter name by removing LabCom test method suffixes"""
+        normalized = param_name.upper()
+        
+        # Remove common suffixes
+        normalized = (normalized
+                     .replace(' (LIQ)', '').replace(' (EL.)', '')
+                     .replace(' (HR TAB)', '').replace(' (HR TAB).', '')
+                     .replace(' (LR)', '').replace(' (HR)', '').replace(' (POW)', '')
+                     .replace('. ORTHO', '').replace(' [LIQ]', ''))
+        
+        # Handle specific variations
+        if normalized.startswith('PH-') or normalized.startswith('PH ('):
+            normalized = 'PH'
+        elif 'HARDN' in normalized and 'TOTAL' in normalized:
+            normalized = 'TOTAL HARDNESS'
+        elif normalized == 'TDS':
+            normalized = 'TOTAL DISSOLVED SOLIDS'
+        elif 'TURBIDITY' in normalized:
+            normalized = 'TURBIDITY'
+        elif 'SULPHATE' in normalized:
+            normalized = 'SULPHATE (SO₄)'
+        elif 'SUSPENDED SOLIDS' in normalized:
+            normalized = 'TOTAL SUSPENDED SOLIDS'
+        elif normalized.startswith('ALKALINITY M'):
+            normalized = 'ALKALINITY M'
+        elif normalized.startswith('ALKALINITY P'):
+            normalized = 'ALKALINITY P'
+        elif 'CHLORINE FREE' in normalized:
+            normalized = 'FREE CHLORINE'
+        elif 'CHLORINE TOTAL' in normalized:
+            normalized = 'TOTAL CHLORINE'
+        elif 'CHLORINE COMBINED' in normalized:
+            normalized = 'COMBINED CHLORINE'
+        elif 'IRON' in normalized:
+            normalized = 'IRON (FE)'
+        elif 'NICKEL' in normalized:
+            normalized = 'NICKEL (NI)'
+        elif 'ZINC' in normalized:
+            normalized = 'ZINC (ZN)'
+        elif 'COPPER' in normalized:
+            normalized = 'COPPER (CU)'
+        elif 'CHLORIDE' in normalized:
+            normalized = 'CHLORIDE'
+        elif 'PHOSPHATE' in normalized:
+            normalized = 'PHOSPHATE'
+        elif 'DEHA' in normalized:
+            normalized = 'DEHA'
+        elif 'HYDRAZINE' in normalized:
+            normalized = 'HYDRAZINE'
+        elif 'NITRITE' in normalized:
+            normalized = 'NITRITE'
+        elif normalized == 'COD' or 'COD' in normalized:
+            normalized = 'COD'
+        elif normalized == 'BOD' or 'BOD' in normalized:
+            normalized = 'BOD'
+        
+        return normalized.strip()
+    
+    # Get recent measurements for this vessel
+    with get_accubase_write_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get measurements from last 90 days
+        cursor.execute('''
+            SELECT
+                m.id as measurement_id,
+                m.value_numeric,
+                m.measurement_date,
+                p.id as parameter_id,
+                p.name as parameter_name,
+                sp.id as sampling_point_id,
+                sp.name as sampling_point_name
+            FROM measurements m
+            JOIN parameters p ON m.parameter_id = p.id
+            JOIN sampling_points sp ON m.sampling_point_id = sp.id
+            WHERE sp.vessel_id = ?
+              AND m.measurement_date >= date('now', '-90 days')
+              AND m.value_numeric IS NOT NULL
+            ORDER BY m.measurement_date DESC
+        ''', (vessel_id,))
+        
+        measurements = cursor.fetchall()
+        alerts_created = 0
+        alerts_resolved = 0
+        
+        for m in measurements:
+            measurement_id, value, meas_date, param_id, param_name, sp_id, sp_name = m
+            
+            # Get equipment type and normalized parameter name
+            equipment_type = get_equipment_type(sp_name)
+            if not equipment_type or equipment_type not in limits_by_equipment:
+                continue
+            
+            normalized_param = normalize_parameter_name(param_name)
+            if normalized_param not in limits_by_equipment[equipment_type]:
+                continue
+            
+            # Get limits for this parameter
+            limits = limits_by_equipment[equipment_type][normalized_param]
+            lower_limit = limits['lower']
+            upper_limit = limits['upper']
+            
+            # Check if value is out of range
+            is_out_of_range = value < lower_limit or value > upper_limit
+            
+            # Check for existing alert
+            cursor.execute('''
+                SELECT id, resolved_at
+                FROM alerts
+                WHERE measurement_id = ? AND vessel_id = ?
+            ''', (measurement_id, vessel_id))
+            existing_alert = cursor.fetchone()
+            
+            if is_out_of_range:
+                # Value is out of range - should have an alert
+                if not existing_alert or existing_alert[1]:  # No alert or resolved
+                    # Create new alert
+                    alert_type = 'critical' if (value < lower_limit * 0.5 or value > upper_limit * 1.5) else 'warning'
+                    alert_reason = f'Value {value} outside range {lower_limit}-{upper_limit}'
+                    
+                    cursor.execute('''
+                        INSERT INTO alerts (
+                            measurement_id, vessel_id, sampling_point_id, parameter_id,
+                            alert_type, alert_reason, measured_value,
+                            expected_low, expected_high, alert_date, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        measurement_id, vessel_id, sp_id, param_id,
+                        alert_type, alert_reason, value,
+                        lower_limit, upper_limit, meas_date, datetime.now()
+                    ))
+                    alerts_created += 1
+            else:
+                # Value is in range - should NOT have an unresolved alert
+                if existing_alert and not existing_alert[1]:  # Has unresolved alert
+                    # Resolve the alert
+                    cursor.execute('''
+                        UPDATE alerts
+                        SET resolved_at = ?, resolution_notes = ?
+                        WHERE id = ?
+                    ''', (
+                        datetime.now(),
+                        'Auto-resolved: value within new parameter limits',
+                        existing_alert[0]
+                    ))
+                    alerts_resolved += 1
+        
+        conn.commit()
+    
+    return {
+        'alerts_created': alerts_created,
+        'alerts_resolved': alerts_resolved,
+        'measurements_checked': len(measurements)
+    }

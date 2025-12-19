@@ -1,11 +1,13 @@
 """
-Utility functions for PDF report generation using matplotlib
+Utility functions for PDF report generation
+Uses Matplotlib with website-matching color schemes for ARM64 compatibility
 """
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.patches import Rectangle
+from matplotlib.ticker import MaxNLocator
 from datetime import datetime
 import io
 from collections import defaultdict
@@ -16,277 +18,418 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 # Chart configuration
-CHART_WIDTH_INCHES = 8
-CHART_HEIGHT_INCHES = 5
-DPI = 100
+CHART_WIDTH_INCHES = 3.0
+CHART_HEIGHT_INCHES = 2.2
+SCATTER_HEIGHT_INCHES = 2.2
+DPI = 120  # Higher DPI for better quality
 
-# Color palette for professional look
-COLORS = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#6A994E', '#BC4B51', '#5B8E7D', '#8B5A3C']
+# Website-matching color schemes
+BOILER_COLORS = {
+    'Aux1': '#0d6efd',   # Blue
+    'Aux2': '#198754',   # Green
+    'EGE': '#dc3545',    # Red
+    'Hotwell': '#ffc107' # Yellow
+}
+
+MAIN_ENGINE_COLORS = {
+    'ME1': '#dc3545',  # Red
+    'ME2': '#0d6efd'   # Blue
+}
+
+AUX_ENGINE_COLORS = {
+    1: '#2196F3',  # Blue
+    2: '#4CAF50',  # Green
+    3: '#FF9800'   # Orange
+}
+
+# Generic color palette for other sections
+GENERIC_COLORS = ['#0d6efd', '#198754', '#dc3545', '#ffc107', '#6f42c1', '#fd7e14', '#20c997', '#6c757d']
 
 
-def prepare_chart_data(raw_data, parameter_names):
+def compact_label(label):
     """
-    Reorganize raw measurement data for charting
+    Compact long labels to shorter format
+    """
+    import re
+    label = str(label)
+    lbl = label.lower()
+    
+    # Preserve comparison titles (e.g., "Iron vs BN")
+    if ' vs ' in lbl:
+        return label
+    
+    # Parameter name shortenings - check most specific first
+    if 'conductiv' in lbl or 'ec' in lbl:
+        return 'Conductivity'
+    if 'phosphat' in lbl or 'ortho' in lbl:
+        return 'Phosphate'
+    if 'chloride' in lbl:
+        return 'Chloride'
+    if 'alkalinity' in lbl or 'alk' in lbl:
+        return 'Alkalinity'
+    if 'hardness' in lbl:
+        return 'Hardness'
+    if 'iron' in lbl or 'fe' in lbl:
+        return 'Iron'
+    if 'base number' in lbl or 'tbn' in lbl or 'bn' in lbl:
+        return 'BN'
+    if 'nitrite' in lbl:
+        return 'Nitrite'
+    if 'nitrate' in lbl:
+        return 'Nitrate'
+    if 'silica' in lbl:
+        return 'Silica'
+    if 'sulphate' in lbl or 'sulfate' in lbl:
+        return 'Sulphate'
+    if 'viscosity' in lbl:
+        return 'Viscosity'
+    if 'turbidity' in lbl:
+        return 'Turbidity'
+    if 'coliform' in lbl or 'coli' in lbl:
+        return 'Coliform'
+    if 'tss' in lbl:
+        return 'TSS'
+    if 'cod' in lbl:
+        return 'COD'
+    if 'tds' in lbl:
+        return 'TDS'
+    if 'chlorine' in lbl:
+        return 'Chlorine'
+    if 'ph' == lbl or lbl.startswith('ph ') or ' ph' in lbl:
+        return 'pH'
+    
+    # Main Engine patterns
+    if 'ME' in label.upper() and 'UNIT' in label.upper():
+        me_match = re.search(r'ME\s*(\d+)', label, re.IGNORECASE)
+        unit_match = re.search(r'UNIT\s*(\d+)', label, re.IGNORECASE)
+        if me_match and unit_match:
+            return f"ME{me_match.group(1)} U{unit_match.group(1)}"
+    
+    # Scavenge drain patterns
+    if 'SD' in label.upper():
+        me_match = re.search(r'ME\s*(\d*)', label, re.IGNORECASE)
+        unit_match = re.search(r'UNIT\s*(\d+)', label, re.IGNORECASE)
+        if unit_match:
+            me_num = me_match.group(1) if me_match and me_match.group(1) else '1'
+            return f"ME{me_num} U{unit_match.group(1)}"
+    
+    # Aux Boiler patterns
+    if 'AUX' in label.upper() and 'BOILER' in label.upper():
+        num_match = re.search(r'(\d+)', label)
+        if num_match:
+            return f"Aux{num_match.group(1)}"
+    
+    # Aux Engine patterns
+    if 'AE' in label.upper() or ('AUX' in label.upper() and 'ENGINE' in label.upper()):
+        num_match = re.search(r'(\d+)', label)
+        if num_match:
+            return f"AE{num_match.group(1)}"
+    
+    # If short enough, return as is
+    if len(label) <= 12:
+        return label
+    
+    return label[:12]
 
+def get_unit_label(title):
+    """Infer unit label from chart title"""
+    title_lower = title.lower()
+    if "conductivity" in title_lower:
+        return "μS/cm"
+    if "phosphate" in title_lower:
+        return "ppm"
+    if "chloride" in title_lower:
+        return "ppm"
+    if "alkalinity" in title_lower:
+        return "mg/L"
+    if "hardness" in title_lower:
+        return "ppm"
+    if "iron" in title_lower:
+        return "ppm"
+    if "base number" in title_lower or "bn" in title_lower:
+        return "mg KOH/g"
+    if "ph" in title_lower:
+        return "pH"
+    if "tds" in title_lower:
+        return "ppm"
+    if "nitrate" in title_lower or "nitrite" in title_lower:
+        return "mg/L"
+    if "viscosity" in title_lower:
+        return "cSt"
+    if "water" in title_lower:
+        return "ppm"
+    return ""
+
+
+
+
+def create_line_chart_by_unit(data, title, color_scheme=None, ideal_low=None, ideal_high=None, unit_field='unit_id'):
+    """
+    Create a line chart with multiple units/equipment, matching website styling.
+    
     Args:
-        raw_data: List of measurement records from database
-        parameter_names: List of parameter name patterns to match
-
-    Returns:
-        dict: {parameter_name: [(date, value), ...]}
-    """
-    organized = defaultdict(list)
-
-    for record in raw_data:
-        param_name = record.get('parameter_name', '')
-        value = record.get('value_numeric')
-        date_str = record.get('measurement_date')
-
-        if value is None or not date_str:
-            continue
-
-        try:
-            date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
-
-            # Match parameter name with fuzzy matching
-            for pattern in parameter_names:
-                if pattern.lower() in param_name.lower():
-                    organized[param_name].append((date_obj, float(value)))
-                    break
-        except:
-            continue
-
-    # Sort by date
-    for param in organized:
-        organized[param].sort(key=lambda x: x[0])
-
-    return dict(organized)
-
-
-def create_line_chart(data, parameter_name, title, ideal_low=None, ideal_high=None):
-    """
-    Create a line chart for a single parameter with ideal range shading
-
-    Args:
-        data: List of dicts with measurement records
-        parameter_name: Parameter pattern to plot
+        data: List of dicts with measurement records (must have unit_field, parameter_name, measurement_date, value_numeric)
         title: Chart title
-        ideal_low: Lower ideal range
-        ideal_high: Upper ideal range
-
+        color_scheme: Dict mapping unit_id to color (e.g., BOILER_COLORS)
+        ideal_low: Lower ideal range for shading
+        ideal_high: Upper ideal range for shading
+        unit_field: Field name for unit identifier (e.g., 'unit_id', 'boiler_id', 'engine_id')
+    
     Returns:
-        PIL Image object
+        BytesIO object containing PNG image
     """
     if not data:
         return None
-
-    # Prepare data
-    chart_data = prepare_chart_data(data, [parameter_name])
-
-    if not chart_data:
+    
+    if color_scheme is None:
+        color_scheme = {}
+    
+    # Organize data by unit
+    units_data = defaultdict(list)
+    for record in data:
+        unit_id = record.get(unit_field, 'Unknown')
+        date_str = record.get('measurement_date', '')
+        value = record.get('value_numeric')
+        
+        if value is not None and date_str:
+            try:
+                date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                units_data[unit_id].append((date_obj, float(value)))
+            except:
+                continue
+    
+    if not units_data:
         return None
-
-    # Get the first matching parameter
-    param_key = list(chart_data.keys())[0]
-    dates_values = chart_data[param_key]
-
-    if not dates_values:
-        return None
-
-    dates, values = zip(*dates_values)
-
-    # Create figure with professional styling
+    
+    # Create figure with website-matching style
     fig, ax = plt.subplots(figsize=(CHART_WIDTH_INCHES, CHART_HEIGHT_INCHES))
     fig.patch.set_facecolor('white')
-
+    ax.set_facecolor('white')
+    
     # Add ideal range shading if provided
     if ideal_low is not None and ideal_high is not None:
-        ax.axhspan(ideal_low, ideal_high, alpha=0.15, color='#6A994E',
+        ax.axhspan(ideal_low, ideal_high, alpha=0.1, color='#28a745',
                    label='Ideal Range', zorder=1)
-
-    # Plot main line with professional styling
-    ax.plot(dates, values, marker='o', linestyle='-', linewidth=2.5,
-            markersize=7, color=COLORS[0], label=param_key, zorder=3)
-
-    # Formatting
-    ax.set_title(title, fontsize=15, fontweight='bold', pad=15, color='#2c3e50')
-    ax.set_xlabel('Date', fontsize=12, fontweight='600', color='#34495e')
-    ax.set_ylabel(param_key, fontsize=12, fontweight='600', color='#34495e')
-    ax.grid(True, alpha=0.25, linestyle='--', linewidth=0.8)
-    ax.legend(loc='best', frameon=True, shadow=True, fontsize=10)
-
+    
+    # Plot each unit with website colors
+    color_idx = 0
+    for unit_id, points in sorted(units_data.items()):
+        points.sort(key=lambda x: x[0])
+        dates, values = zip(*points)
+        
+        # Get color from scheme or use generic
+        color = color_scheme.get(unit_id, GENERIC_COLORS[color_idx % len(GENERIC_COLORS)])
+        
+        ax.plot(dates, values, marker='o', linestyle='-', linewidth=2,
+                markersize=6, color=color, label=compact_label(unit_id), zorder=3)
+        color_idx += 1
+    
+    # Website-matching formatting
+    ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=12, color='#2c3e50')
+    #ax.set_xlabel('Date', fontsize=8, color='#6c757d')  # Removed - intuitive
+    ax.set_ylabel(get_unit_label(title), fontsize=7, color='#6c757d')
+    
+    # Grid styling to match website
+    ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, color='#000000')
+    ax.set_axisbelow(True)
+    
+    # Legend at top
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22), ncol=10, frameon=False, fontsize=6, columnspacing=0.8)
+    
     # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    fig.autofmt_xdate(rotation=45)
-
-    # Style improvements
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#cccccc')
-    ax.spines['bottom'].set_color('#cccccc')
-
-    plt.tight_layout()
-
-    # Convert to image
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    fig.autofmt_xdate(rotation=30, ha='right')
+    ax.tick_params(axis='x', labelsize=6)
+    
+    # Clean spine styling
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    for spine in ['left', 'bottom']:
+        ax.spines[spine].set_color('#dee2e6')
+    
+    # plt.tight_layout()  # Disabled - using bbox_inches=tight
+    
+    # Convert to BytesIO
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white')
+    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close(fig)
     buf.seek(0)
+    return buf
 
-    return Image.open(buf)
 
-
-def create_multi_parameter_chart(data, parameter_names, title, equipment_name=None):
+def create_multi_line_chart(data, parameter_names, title):
     """
-    Create a chart with multiple parameters on same plot
-
+    Create a chart with multiple parameters (different lines for each parameter)
+    
     Args:
         data: List of measurement records
-        parameter_names: List of parameter patterns to plot
+        parameter_names: List of parameter patterns to include
         title: Chart title
-        equipment_name: Optional equipment filter
-
+    
     Returns:
-        PIL Image object
+        BytesIO object containing PNG image
     """
     if not data:
         return None
-
-    # Prepare data
-    chart_data = prepare_chart_data(data, parameter_names)
-
-    if not chart_data:
+    
+    # Organize data by parameter
+    param_data = defaultdict(list)
+    for record in data:
+        param_name = record.get('parameter_name', '')
+        date_str = record.get('measurement_date', '')
+        value = record.get('value_numeric')
+        
+        if value is None or not date_str:
+            continue
+        
+        # Match parameter
+        for pattern in parameter_names:
+            if pattern.lower() in param_name.lower():
+                try:
+                    date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                    param_data[param_name].append((date_obj, float(value)))
+                except:
+                    pass
+                break
+    
+    if not param_data:
         return None
-
-    # Create figure with professional styling
+    
+    # Create figure
     fig, ax = plt.subplots(figsize=(CHART_WIDTH_INCHES, CHART_HEIGHT_INCHES))
     fig.patch.set_facecolor('white')
-
-    # Plot each parameter with different color
+    ax.set_facecolor('white')
+    
     color_idx = 0
-    for param_name, dates_values in chart_data.items():
-        if dates_values:
-            dates, values = zip(*dates_values)
-            ax.plot(dates, values, marker='o', linestyle='-', linewidth=2.5,
-                   markersize=6, color=COLORS[color_idx % len(COLORS)],
-                   label=param_name, alpha=0.9, zorder=3)
-            color_idx += 1
-
-    # Formatting
-    ax.set_title(title, fontsize=15, fontweight='bold', pad=15, color='#2c3e50')
-    ax.set_xlabel('Date', fontsize=12, fontweight='600', color='#34495e')
-    ax.set_ylabel('Value', fontsize=12, fontweight='600', color='#34495e')
-    ax.grid(True, alpha=0.25, linestyle='--', linewidth=0.8)
-    ax.legend(loc='upper left', bbox_to_anchor=(1.02, 1), frameon=True,
-             shadow=True, fontsize=9)
-
-    # Format x-axis dates
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
-    fig.autofmt_xdate(rotation=45)
-
-    # Style improvements
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#cccccc')
-    ax.spines['bottom'].set_color('#cccccc')
-
-    plt.tight_layout()
-
-    # Convert to image
+    for param_name, points in sorted(param_data.items()):
+        points.sort(key=lambda x: x[0])
+        dates, values = zip(*points)
+        
+        ax.plot(dates, values, marker='o', linestyle='-', linewidth=2,
+                markersize=5, color=GENERIC_COLORS[color_idx % len(GENERIC_COLORS)],
+                label=compact_label(param_name), zorder=3)
+        color_idx += 1
+    
+    ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=12, color='#2c3e50')
+    #ax.set_xlabel('Date', fontsize=8, color='#6c757d')  # Removed - intuitive
+    ax.set_ylabel(get_unit_label(title), fontsize=7, color='#6c757d')
+    ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, color='#000000')
+    ax.set_axisbelow(True)
+    
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22), ncol=10, frameon=False, fontsize=6, columnspacing=0.8)
+    
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    fig.autofmt_xdate(rotation=30, ha='right')
+    ax.tick_params(axis='x', labelsize=6)
+    
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    for spine in ['left', 'bottom']:
+        ax.spines[spine].set_color('#dee2e6')
+    
+    # plt.tight_layout()  # Disabled - using bbox_inches=tight
+    
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white')
+    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close(fig)
     buf.seek(0)
+    return buf
 
-    return Image.open(buf)
 
-
-def create_scatter_plot(data, x_param, y_param, title, group_by='sampling_point_code'):
+def create_scatter_chart(data, x_param, y_param, title, color_scheme=None, group_field='sampling_point_name'):
     """
-    Create scatter plot (e.g., for scavenge drain analysis)
-
+    Create scatter plot (e.g., for scavenge drain Iron vs Base Number)
+    
     Args:
         data: List of measurement records
         x_param: X-axis parameter pattern
         y_param: Y-axis parameter pattern
         title: Chart title
-        group_by: Field to group points by (for coloring)
-
+        color_scheme: Dict mapping group values to colors
+        group_field: Field to group/color by
+    
     Returns:
-        PIL Image object
+        BytesIO object containing PNG image
     """
     if not data:
         return None
-
-    # Organize data by groups
-    groups = defaultdict(lambda: {'x': [], 'y': []})
-
+    
+    if color_scheme is None:
+        color_scheme = {}
+    
+    # Organize data by group and date for matching x/y pairs
+    date_groups = defaultdict(lambda: defaultdict(dict))
+    
     for record in data:
-        group_val = record.get(group_by, 'Unknown')
+        group_val = record.get(group_field, 'Unknown')
         param_name = record.get('parameter_name', '')
+        date_str = record.get('measurement_date', '')
         value = record.get('value_numeric')
-
-        if value is None:
+        
+        if value is None or not date_str:
             continue
-
-        # Match to x or y parameter
+        
         if x_param.lower() in param_name.lower():
-            groups[group_val]['x'].append(float(value))
+            date_groups[group_val][date_str]['x'] = float(value)
         elif y_param.lower() in param_name.lower():
-            groups[group_val]['y'].append(float(value))
-
-    # Create figure
+            date_groups[group_val][date_str]['y'] = float(value)
+    
+    # Create figure - scatter plots slightly wider for better aspect ratio
     fig, ax = plt.subplots(figsize=(CHART_WIDTH_INCHES, CHART_HEIGHT_INCHES))
     fig.patch.set_facecolor('white')
-
+    ax.set_facecolor('white')
+    
     has_data = False
     color_idx = 0
-
-    for group_name, group_data in groups.items():
-        # Match x and y by ensuring equal lengths
-        x_vals = group_data['x']
-        y_vals = group_data['y']
-
+    
+    for group_val, date_points in sorted(date_groups.items()):
+        x_vals = []
+        y_vals = []
+        
+        for date_str, vals in date_points.items():
+            if 'x' in vals and 'y' in vals:
+                x_vals.append(vals['x'])
+                y_vals.append(vals['y'])
+        
         if x_vals and y_vals:
-            # Take minimum length to avoid mismatched data
-            min_len = min(len(x_vals), len(y_vals))
-            if min_len > 0:
-                ax.scatter(x_vals[:min_len], y_vals[:min_len],
-                          s=100, alpha=0.7, color=COLORS[color_idx % len(COLORS)],
-                          label=group_name, edgecolors='white', linewidth=1.5, zorder=3)
-                has_data = True
-                color_idx += 1
-
+            color = color_scheme.get(group_val, GENERIC_COLORS[color_idx % len(GENERIC_COLORS)])
+            
+            ax.scatter(x_vals, y_vals, s=80, alpha=0.8, color=color,
+                      label=compact_label(group_val), edgecolors='white', linewidth=1, zorder=3)
+            has_data = True
+            color_idx += 1
+    
     if not has_data:
         plt.close(fig)
         return None
-
-    # Formatting
-    ax.set_title(title, fontsize=15, fontweight='bold', pad=15, color='#2c3e50')
-    ax.set_xlabel(x_param, fontsize=12, fontweight='600', color='#34495e')
-    ax.set_ylabel(y_param, fontsize=12, fontweight='600', color='#34495e')
-    ax.grid(True, alpha=0.25, linestyle='--', linewidth=0.8)
-    ax.legend(loc='upper left', bbox_to_anchor=(1.02, 1), frameon=True,
-             shadow=True, fontsize=9)
-
-    # Style improvements
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#cccccc')
-    ax.spines['bottom'].set_color('#cccccc')
-
-    plt.tight_layout()
-
-    # Convert to image
+    
+    ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=12, color='#2c3e50')
+    ax.set_xlabel(x_param, fontsize=11, color='#6c757d')
+    ax.set_ylabel(get_unit_label(title), fontsize=7, color='#6c757d')
+    ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, color='#000000')
+    ax.set_axisbelow(True)
+    
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22), ncol=10, frameon=False, fontsize=6, columnspacing=0.8)
+    
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    for spine in ['left', 'bottom']:
+        ax.spines[spine].set_color('#dee2e6')
+    
+    # plt.tight_layout()  # Disabled - using bbox_inches=tight
+    
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white')
+    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white', edgecolor='none')
     plt.close(fig)
     buf.seek(0)
+    return buf
 
-    return Image.open(buf)
 
+# ============================================================
+# TABLE AND STYLE UTILITIES
+# ============================================================
 
 def create_summary_table(data, column_headers, title=None):
     """
@@ -339,6 +482,16 @@ def format_date(date_str):
         return dt.strftime('%Y-%m-%d')
     except:
         return date_str
+
+
+def format_date_short(date_obj):
+    """Format date object for cover page display (e.g., '12 Nov 25')"""
+    if isinstance(date_obj, str):
+        try:
+            date_obj = datetime.fromisoformat(date_obj.replace('Z', '+00:00'))
+        except:
+            return date_obj
+    return date_obj.strftime('%d %b %y')
 
 
 def get_status_color(status):
@@ -399,3 +552,200 @@ def create_subsection_style():
         fontName='Helvetica-Bold'
     )
     return subsection_style
+
+
+# ============================================================
+# LEGACY CHART FUNCTIONS (for page_report_utils.py compatibility)
+# ============================================================
+
+def prepare_chart_data(raw_data, parameter_names):
+    """
+    Reorganize raw measurement data for charting
+
+    Args:
+        raw_data: List of measurement records from database
+        parameter_names: List of parameter name patterns to match
+
+    Returns:
+        dict: {parameter_name: [(date, value), ...]}
+    """
+    organized = defaultdict(list)
+
+    for record in raw_data:
+        param_name = record.get('parameter_name', '')
+        value = record.get('value_numeric')
+        date_str = record.get('measurement_date')
+
+        if value is None or not date_str:
+            continue
+
+        try:
+            date_obj = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+
+            # Match parameter name with fuzzy matching
+            for pattern in parameter_names:
+                if pattern.lower() in param_name.lower():
+                    organized[param_name].append((date_obj, float(value)))
+                    break
+        except:
+            continue
+
+    # Sort by date
+    for param in organized:
+        organized[param].sort(key=lambda x: x[0])
+
+    return dict(organized)
+
+
+# Legacy color palette
+COLORS = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#6A994E', '#BC4B51', '#5B8E7D', '#8B5A3C']
+
+
+def create_multi_parameter_chart(data, parameter_names, title, equipment_name=None):
+    """
+    Create a chart with multiple parameters on same plot (legacy function)
+
+    Args:
+        data: List of measurement records
+        parameter_names: List of parameter patterns to plot
+        title: Chart title
+        equipment_name: Optional equipment filter
+
+    Returns:
+        PIL Image object
+    """
+    if not data:
+        return None
+
+    # Prepare data
+    chart_data = prepare_chart_data(data, parameter_names)
+
+    if not chart_data:
+        return None
+
+    # Create figure with professional styling
+    fig, ax = plt.subplots(figsize=(CHART_WIDTH_INCHES, CHART_HEIGHT_INCHES))
+    fig.patch.set_facecolor('white')
+
+    # Plot each parameter with different color
+    color_idx = 0
+    for param_name, dates_values in chart_data.items():
+        if dates_values:
+            dates, values = zip(*dates_values)
+            ax.plot(dates, values, marker='o', linestyle='-', linewidth=2.5,
+                   markersize=6, color=COLORS[color_idx % len(COLORS)],
+                   label=param_name, alpha=0.9, zorder=3)
+            color_idx += 1
+
+    # Formatting
+    ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=15, color='#2c3e50')
+    ax.set_xlabel('Date', fontsize=12, fontweight='600', color='#34495e')
+    ax.set_ylabel(get_unit_label(title), fontsize=7, fontweight='600', color='#34495e')
+    ax.grid(True, alpha=0.25, linestyle='--', linewidth=0.8)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22), ncol=10, frameon=False, fontsize=6, columnspacing=0.8)  #
+
+    # Format x-axis dates
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
+    fig.autofmt_xdate(rotation=30, ha='right')
+    ax.tick_params(axis='x', labelsize=6)
+
+    # Style improvements
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#cccccc')
+    ax.spines['bottom'].set_color('#cccccc')
+
+    # plt.tight_layout()  # Disabled - using bbox_inches=tight
+
+    # Convert to image
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white')
+    plt.close(fig)
+    buf.seek(0)
+
+    return Image.open(buf)
+
+
+def create_scatter_plot(data, x_param, y_param, title, group_by='sampling_point_code'):
+    """
+    Create scatter plot (legacy function for page_report_utils.py)
+
+    Args:
+        data: List of measurement records
+        x_param: X-axis parameter pattern
+        y_param: Y-axis parameter pattern
+        title: Chart title
+        group_by: Field to group points by (for coloring)
+
+    Returns:
+        PIL Image object
+    """
+    if not data:
+        return None
+
+    # Organize data by groups
+    groups = defaultdict(lambda: {'x': [], 'y': []})
+
+    for record in data:
+        group_val = record.get(group_by, 'Unknown')
+        param_name = record.get('parameter_name', '')
+        value = record.get('value_numeric')
+
+        if value is None:
+            continue
+
+        # Match to x or y parameter
+        if x_param.lower() in param_name.lower():
+            groups[group_val]['x'].append(float(value))
+        elif y_param.lower() in param_name.lower():
+            groups[group_val]['y'].append(float(value))
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(CHART_WIDTH_INCHES, CHART_HEIGHT_INCHES))
+    fig.patch.set_facecolor('white')
+
+    has_data = False
+    color_idx = 0
+
+    for group_name, group_data in groups.items():
+        # Match x and y by ensuring equal lengths
+        x_vals = group_data['x']
+        y_vals = group_data['y']
+
+        if x_vals and y_vals:
+            # Take minimum length to avoid mismatched data
+            min_len = min(len(x_vals), len(y_vals))
+            if min_len > 0:
+                ax.scatter(x_vals[:min_len], y_vals[:min_len],
+                          s=100, alpha=0.7, color=COLORS[color_idx % len(COLORS)],
+                          label=group_name, edgecolors='white', linewidth=1.5, zorder=3)
+                has_data = True
+                color_idx += 1
+
+    if not has_data:
+        plt.close(fig)
+        return None
+
+    # Formatting
+    ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=15, color='#2c3e50')
+    ax.set_xlabel(x_param, fontsize=12, fontweight='600', color='#34495e')
+    ax.set_ylabel(get_unit_label(title), fontsize=7, fontweight='600', color='#34495e')
+    ax.grid(True, alpha=0.25, linestyle='--', linewidth=0.8)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22), ncol=10, frameon=False, fontsize=6, columnspacing=0.8)  #
+
+    # Style improvements
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#cccccc')
+    ax.spines['bottom'].set_color('#cccccc')
+
+    # plt.tight_layout()  # Disabled - using bbox_inches=tight
+
+    # Convert to image
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=DPI, bbox_inches='tight', facecolor='white')
+    plt.close(fig)
+    buf.seek(0)
+
+    return Image.open(buf)

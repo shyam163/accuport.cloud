@@ -120,6 +120,50 @@ def update_user_status(user_id, is_active, admin_user_id):
             print(f"Error updating user status: {e}")
             return False
 
+def change_user_password(user_id, new_password, admin_user_id):
+    """
+    Change a user's password to a specified password
+    Args:
+        user_id: User ID whose password to change
+        new_password: The new password to set (plain text)
+        admin_user_id: ID of admin performing the action
+    Returns:
+        dict with 'success': bool and 'username': str if successful, or error message
+    """
+    with get_users_connection() as conn:
+        cursor = conn.cursor()
+
+        try:
+            # Get user info
+            cursor.execute('SELECT username, role FROM users WHERE id = ?', (user_id,))
+            user = dict_from_row(cursor.fetchone())
+
+            if not user:
+                return {'success': False, 'error': 'User not found'}
+
+            # Hash the new password
+            password_hash = hash_password(new_password)
+
+            # Update user password
+            cursor.execute('''
+                UPDATE users
+                SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (password_hash, user_id))
+
+            # Log the action
+            cursor.execute('''
+                INSERT INTO admin_audit_log (admin_user_id, action_type, action_details, target_user_id)
+                VALUES (?, ?, ?, ?)
+            ''', (admin_user_id, 'CHANGE_PASSWORD', f'Password changed for user: {user["username"]}', user_id))
+
+            conn.commit()
+            return {'success': True, 'username': user['username']}
+        except Exception as e:
+            conn.rollback()
+            print(f"Error changing user password: {e}")
+            return {'success': False, 'error': str(e)}
+
 # ============================================================================
 # VESSEL MANAGEMENT
 # ============================================================================
