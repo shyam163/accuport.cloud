@@ -122,8 +122,6 @@
                     {% endif %}
                 </div>
             </div>
-
-
         </div>
 
         <!-- Main Content -->
@@ -290,6 +288,16 @@
             </div>
             {% endif %}
 
+
+            <!-- PDF Download Button -->
+            <div class="card mb-3">
+                <div class="card-body text-center">
+                    <button type="button" class="btn btn-success w-100" id="download-pdf-btn" onclick="downloadPagePDF()">
+                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                    </button>
+                    <small class="text-muted d-block mt-2">Generate report for current view</small>
+                </div>
+            </div>
             <!-- Vessel Equipment Specifications -->
             {% if vessel_specs %}
             <div class="card mb-3">
@@ -1462,6 +1470,51 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Initialize table filtering
+
+// Download PDF for current page view
+function downloadPagePDF() {
+    const btn = document.getElementById('download-pdf-btn');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Generating...';
+    btn.disabled = true;
+    
+    // Get selected engines
+    const selectedEngines = getSelectedEngines();
+    
+    // Get date range
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    // Build URL with parameters
+    let url = '/api/reports/main-engine-sd-pdf?vessel_id={{ vessel.id }}';
+    url += '&start_date=' + startDate;
+    url += '&end_date=' + endDate;
+    selectedEngines.forEach(e => url += '&engines=' + e);
+    
+    // Fetch PDF
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('PDF generation failed');
+            return response.blob();
+        })
+        .then(blob => {
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = '{{ vessel.vessel_name }}_MainEngine_' + startDate + '_' + endDate + '.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+        })
+        .catch(error => {
+            alert('Error generating PDF: ' + error.message);
+        })
+        .finally(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+}
 updateCharts();
 </script>
 {% endblock %}

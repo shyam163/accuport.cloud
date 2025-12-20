@@ -153,6 +153,16 @@
             </div>
             {% endif %}
 
+
+            <!-- PDF Download Button -->
+            <div class="card mb-3">
+                <div class="card-body text-center">
+                    <button type="button" class="btn btn-success w-100" id="download-pdf-btn" onclick="downloadPagePDF()">
+                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                    </button>
+                    <small class="text-muted d-block mt-2">Generate report for current view</small>
+                </div>
+            </div>
             <!-- Vessel Equipment Specifications -->
             {% if vessel_specs %}
             <div class="card mb-3">
@@ -598,5 +608,52 @@ document.querySelectorAll('.date-preset').forEach(button => {
 {% if cooling_data %}
 updateCharts();
 {% endif %}
+
+// Download PDF for current page view
+function downloadPagePDF() {
+    const btn = document.getElementById("download-pdf-btn");
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Generating...';
+    btn.disabled = true;
+    
+    // Get selected systems
+    const selectedSystems = [];
+    document.querySelectorAll("input[type=checkbox]:checked").forEach(cb => {
+        const label = cb.nextElementSibling ? cb.nextElementSibling.textContent.trim() : "";
+        if (label.includes("HT")) selectedSystems.push("HT");
+        if (label.includes("LT")) selectedSystems.push("LT");
+    });
+    
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
+    
+    let url = "/api/reports/central-cooling-pdf?vessel_id={{ vessel.id }}";
+    url += "&start_date=" + startDate + "&end_date=" + endDate;
+    selectedSystems.forEach(s => url += "&systems=" + s);
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error("PDF generation failed");
+            return response.blob();
+        })
+        .then(blob => {
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = "{{ vessel.vessel_name }}_CentralCooling_" + startDate + "_" + endDate + ".pdf";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            a.remove();
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Failed to generate PDF. Please try again.");
+        })
+        .finally(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+}
 </script>
 {% endblock %}

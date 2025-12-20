@@ -21,12 +21,14 @@ from reportlab.lib.utils import ImageReader
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from models import (
+    get_all_limits_for_equipment,
     get_vessel_by_id,
     get_measurements_by_equipment_name,
     get_measurements_for_scavenge_drains,
     get_alerts_for_vessel
 )
 from report_utils import (
+    get_limits_for_pdf,
     create_line_chart_by_unit,
     create_multi_line_chart,
     create_scatter_chart,
@@ -70,6 +72,18 @@ AVAILABLE_SECTIONS = {
     'treated_sewage': {
         'name': 'Treated Sewage',
         'generator': 'generate_treated_sewage_section'
+    },
+    'central_cooling': {
+        'name': 'Central Cooling',
+        'generator': 'generate_central_cooling_section'
+    },
+    'ballast_water': {
+        'name': 'Ballast Water',
+        'generator': 'generate_ballast_water_section'
+    },
+    'egcs': {
+        'name': 'EGCS',
+        'generator': 'generate_egcs_section'
     }
 }
 
@@ -355,50 +369,103 @@ class ReportPDFGenerator:
 
 
 def generate_boiler_section(pdf, vessel_id, start_date, end_date):
-    """Generate boiler water analysis section"""
+    """Generate boiler water analysis section with separate Aux/EGE and Hotwell plots"""
     pdf.start_content_page("Boiler Water Analysis")
     
-    boiler_params = ['Phosphate', 'P-Alkalinity', 'M-Alkalinity', 'Chloride', 'pH', 'Hydrazine', 'DEHA', 'Conductivity']
+    # Parameters for Aux/EGE boilers
+    boiler_params = ['Phosphate', 'Alkalinity P', 'Alkalinity M', 'Chloride', 'pH', 'Conductivity']
+    # Parameters for Hotwell
+    hotwell_params = ['Chloride', 'pH', 'Hydrazine', 'Conductivity']
     
-    # Collect data for all boilers
-    all_data = []
+    # Equipment mappings
     boiler_map = {
-        'Aux1': 'AB1 Aux Boiler',
-        'Aux2': 'AB2 Aux Boiler',
-        'EGE': 'EGE Boiler',
-        'Hotwell': 'Hotwell'
+        'Aux1': 'AB1 Aux Boiler 1',
+        'Aux2': 'AB2 Aux Boiler 2',
+        'EGE': 'CB Composite Boiler'
+    }
+    hotwell_map = {
+        'Hotwell': 'HW Hot Well'
     }
     
+    # Collect data for Aux/EGE boilers
+    boiler_data = []
     for boiler_id, equipment_name in boiler_map.items():
         data = get_measurements_by_equipment_name(vessel_id, equipment_name, boiler_params, start_date, end_date)
         if data:
             for item in data:
                 item_copy = dict(item)
                 item_copy['unit_id'] = boiler_id
-                all_data.append(item_copy)
+                boiler_data.append(item_copy)
     
-    if all_data:
-        # Group by parameter and create charts
+    # Collect data for Hotwell
+    hotwell_data = []
+    for hw_id, equipment_name in hotwell_map.items():
+        data = get_measurements_by_equipment_name(vessel_id, equipment_name, hotwell_params, start_date, end_date)
+        if data:
+            for item in data:
+                item_copy = dict(item)
+                item_copy['unit_id'] = hw_id
+                hotwell_data.append(item_copy)
+    
+    # Helper to extract limits from data
+    def get_limits(data_list):
+        for d in data_list:
+            low = d.get('ideal_low')
+            high = d.get('ideal_high')
+            if low is not None and high is not None:
+                return float(low), float(high)
+        return None, None
+    
+    # Generate Aux/EGE boiler charts
+    if boiler_data:
         params_found = set()
-        for item in all_data:
+        for item in boiler_data:
             for param in boiler_params:
                 if param.lower() in item.get('parameter_name', '').lower():
                     params_found.add(item.get('parameter_name'))
-
+        
         for param_name in sorted(params_found):
-            param_data = [d for d in all_data if param_name.lower() in d.get('parameter_name', '').lower()]
+            param_data = [d for d in boiler_data if param_name.lower() in d.get('parameter_name', '').lower()]
             if param_data:
+                ideal_low, ideal_high = get_limits_for_pdf('AUX BOILER & EGE', param_name)
                 chart = create_line_chart_by_unit(
                     param_data,
                     title=param_name,
                     color_scheme=BOILER_COLORS,
-                    unit_field='unit_id'
+                    ideal_low=ideal_low,
+                    ideal_high=ideal_high,
+                    unit_field='unit_id',
+                    equipment_type='AUX BOILER & EGE'
                 )
                 pdf.add_chart(chart)
-
-        # Add boiler alerts at end of section
-        alerts = get_alerts_for_vessel(vessel_id, unresolved_only=True)
-        pdf.add_section_alerts(alerts, ['BOILER', 'AB1', 'AB2', 'EGE', 'HOTWELL'])
+    
+    # Generate Hotwell charts (separate section)
+    if hotwell_data:
+        pdf.add_subsection("Hotwell")
+        params_found = set()
+        for item in hotwell_data:
+            for param in hotwell_params:
+                if param.lower() in item.get('parameter_name', '').lower():
+                    params_found.add(item.get('parameter_name'))
+        
+        for param_name in sorted(params_found):
+            param_data = [d for d in hotwell_data if param_name.lower() in d.get('parameter_name', '').lower()]
+            if param_data:
+                ideal_low, ideal_high = get_limits_for_pdf('HOTWELL', param_name)
+                chart = create_line_chart_by_unit(
+                    param_data,
+                    title=param_name,
+                    color_scheme={'Hotwell': '#ffc107'},
+                    ideal_low=ideal_low,
+                    ideal_high=ideal_high,
+                    unit_field='unit_id',
+                    equipment_type='HOTWELL'
+                )
+                pdf.add_chart(chart)
+    
+    # Add boiler alerts at end of section
+    alerts = get_alerts_for_vessel(vessel_id, unresolved_only=True)
+    pdf.add_section_alerts(alerts, ['BOILER', 'AB1', 'AB2', 'EGE', 'CB', 'HOTWELL', 'HW'])
 
     pdf.end_section()
 
@@ -421,7 +488,7 @@ def generate_main_engine_section(pdf, vessel_id, start_date, end_date):
                 all_cooling.append(item_copy)
 
     if all_cooling:
-        chart = create_multi_line_chart(all_cooling, cooling_params, "Cooling Water")
+        chart = create_multi_line_chart(all_cooling, cooling_params, "Cooling Water", equipment_type='HT & LT COOLING WATER')
         pdf.add_chart(chart)
 
     # Lube oil
@@ -490,7 +557,7 @@ def generate_aux_engine_section(pdf, vessel_id, start_date, end_date):
         lube_data = get_measurements_by_equipment_name(vessel_id, engine_name, lube_params, start_date, end_date)
 
         if cooling_data:
-            chart = create_multi_line_chart(cooling_data, cooling_params, f"AE{engine_num} Cooling")
+            chart = create_multi_line_chart(cooling_data, cooling_params, f"AE{engine_num} Cooling", equipment_type='HT & LT COOLING WATER')
             pdf.add_chart(chart)
         if lube_data:
             chart = create_multi_line_chart(lube_data, lube_params, f"AE{engine_num} Lube")
@@ -636,7 +703,10 @@ def generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected
         'main_engines': generate_main_engine_section,
         'aux_engines': generate_aux_engine_section,
         'potable_water': generate_potable_water_section,
-        'treated_sewage': generate_treated_sewage_section
+        'treated_sewage': generate_treated_sewage_section,
+        'central_cooling': generate_central_cooling_section,
+        'ballast_water': generate_ballast_water_section,
+        'egcs': generate_egcs_section
     }
     
     for section_key in selected_sections:
@@ -704,3 +774,107 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+def generate_central_cooling_section(pdf, vessel_id, start_date, end_date):
+    """Generate central cooling water analysis section with charts"""
+    # Central cooling parameters - pH, Nitrite, Chloride
+    cooling_params = ['pH', 'Nitrite', 'Chloride']
+    
+    # Get data for HT/LT cooling systems
+    ht_data = get_measurements_by_equipment_name(vessel_id, 'HT Central Cool', cooling_params, start_date, end_date)
+    lt_data = get_measurements_by_equipment_name(vessel_id, 'LT Central Cool', cooling_params, start_date, end_date)
+    
+    if not ht_data and not lt_data:
+        return  # Skip section if no data
+    
+    pdf.start_content_page("Central Cooling Water")
+    
+    # HT Cooling Water charts
+    if ht_data:
+        chart = create_multi_line_chart(ht_data, cooling_params, "HT Central Cooling", equipment_type='HT & LT COOLING WATER')
+        if chart:
+            pdf.add_chart(chart)
+    
+    # LT Cooling Water charts
+    if lt_data:
+        chart = create_multi_line_chart(lt_data, cooling_params, "LT Central Cooling", equipment_type='HT & LT COOLING WATER')
+        if chart:
+            pdf.add_chart(chart)
+    
+    pdf.end_section()
+
+
+def generate_ballast_water_section(pdf, vessel_id, start_date, end_date):
+    """Generate ballast water analysis section"""
+    bw_params = ['Viable Count', 'E.coli', 'Enterococci', 'Vibrio', 'Chlorine']
+    bw_data = get_measurements_by_equipment_name(vessel_id, 'BW Ballast', bw_params, start_date, end_date)
+    
+    if not bw_data:
+        return  # Skip section if no data
+    
+    pdf.start_content_page("Ballast Water")
+    
+    # Create table for ballast water data
+    from collections import defaultdict
+    by_date = defaultdict(dict)
+    for item in bw_data:
+        date = item.get('measurement_date', '')[:10]
+        param = item.get('parameter_name', '')
+        value = item.get('value_numeric', '')
+        for p in bw_params:
+            if p.lower() in param.lower():
+                by_date[date][p] = f"{value:.1f}" if isinstance(value, (int, float)) else str(value)
+                break
+    
+    headers = ['Date'] + bw_params
+    rows = []
+    for date in sorted(by_date.keys(), reverse=True)[:15]:
+        row = [date]
+        for p in bw_params:
+            row.append(by_date[date].get(p, '-'))
+        rows.append(row)
+    
+    if rows:
+        col_widths = [70] + [65] * len(bw_params)
+        pdf.add_table(rows, headers, col_widths)
+    
+    pdf.end_section()
+
+
+def generate_egcs_section(pdf, vessel_id, start_date, end_date):
+    """Generate EGCS (Exhaust Gas Cleaning System) analysis section"""
+    egcs_params = ['pH', 'PAH', 'Turbidity', 'Nitrate']
+    egcs_data = get_measurements_by_equipment_name(vessel_id, 'EGCS', egcs_params, start_date, end_date)
+    
+    if not egcs_data:
+        return  # Skip section if no data
+    
+    pdf.start_content_page("EGCS")
+    
+    # Create table for EGCS data
+    from collections import defaultdict
+    by_date = defaultdict(dict)
+    for item in egcs_data:
+        date = item.get('measurement_date', '')[:10]
+        param = item.get('parameter_name', '')
+        value = item.get('value_numeric', '')
+        for p in egcs_params:
+            if p.lower() in param.lower():
+                by_date[date][p] = f"{value:.1f}" if isinstance(value, (int, float)) else str(value)
+                break
+    
+    headers = ['Date'] + egcs_params
+    rows = []
+    for date in sorted(by_date.keys(), reverse=True)[:15]:
+        row = [date]
+        for p in egcs_params:
+            row.append(by_date[date].get(p, '-'))
+        rows.append(row)
+    
+    if rows:
+        col_widths = [80] + [80] * len(egcs_params)
+        pdf.add_table(rows, headers, col_widths)
+    
+    pdf.end_section()
+

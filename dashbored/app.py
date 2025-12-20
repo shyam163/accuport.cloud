@@ -1572,8 +1572,283 @@ def api_main_engine_sd_pdf():
         app.logger.error(f"Error generating Main Engine SD PDF: {str(e)}")
         abort(500, f"Error generating PDF: {str(e)}")
 
-# ============================================================================
 
+
+@app.route('/api/reports/boiler-water-pdf')
+@login_required
+def api_boiler_water_pdf():
+    """Generate PDF report for Boiler Water page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['boiler'])
+        filename = f"{vessel_name.replace(' ', '_')}_Boiler_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Boiler PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/aux-engines-pdf')
+@login_required
+def api_aux_engines_pdf():
+    """Generate PDF report for Aux Engines page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['aux_engines'])
+        filename = f"{vessel_name.replace(' ', '_')}_AuxEngines_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Aux Engines PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/main-engines-lube-pdf')
+@login_required
+def api_main_engines_lube_pdf():
+    """Generate PDF report for Main Engines page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['main_engines'])
+        filename = f"{vessel_name.replace(' ', '_')}_MainEngines_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Main Engines PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/potable-water-pdf')
+@login_required
+def api_potable_water_pdf():
+    """Generate PDF report for Potable Water page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['potable_water'])
+        filename = f"{vessel_name.replace(' ', '_')}_PotableWater_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Potable Water PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/central-cooling-pdf')
+@login_required
+def api_central_cooling_pdf():
+    """Generate PDF report for Central Cooling page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['central_cooling'])
+        filename = f"{vessel_name.replace(' ', '_')}_CentralCooling_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Central Cooling PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/treated-sewage-pdf')
+@login_required
+def api_treated_sewage_pdf():
+    """Generate PDF report for Treated Sewage page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['treated_sewage'])
+        filename = f"{vessel_name.replace(' ', '_')}_TreatedSewage_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Treated Sewage PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/ballast-water-pdf')
+@login_required
+def api_ballast_water_pdf():
+    """Generate PDF report for Ballast Water page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['ballast_water'])
+        filename = f"{vessel_name.replace(' ', '_')}_BallastWater_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating Ballast Water PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+@app.route('/api/reports/egcs-pdf')
+@login_required
+def api_egcs_pdf():
+    """Generate PDF report for EGCS page using main generator"""
+    from generate_vessel_report import generate_report_bytes
+    from models import get_vessel_by_id
+    
+    vessel_id = request.args.get('vessel_id', type=int)
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    if not vessel_id or not current_user.can_access_vessel(vessel_id):
+        abort(403)
+    
+    vessel = get_vessel_by_id(vessel_id)
+    if not vessel:
+        abort(404, 'Vessel not found')
+    vessel_name = vessel['vessel_name']
+    
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d') if start_date_str else datetime.now() - timedelta(days=30)
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else datetime.now()
+    except ValueError:
+        abort(400, 'Invalid date format')
+    
+    try:
+        pdf_bytes = generate_report_bytes(vessel_id, vessel_name, start_date, end_date, selected_sections=['egcs'])
+        filename = f"{vessel_name.replace(' ', '_')}_EGCS_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.pdf"
+        return send_file(io.BytesIO(pdf_bytes), mimetype='application/pdf', as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f'Error generating EGCS PDF: {str(e)}')
+        abort(500, f'Error generating PDF: {str(e)}')
+
+
+# ============================================================================
+# SYNC ENDPOINTS
+# ============================================================================
 # ============================================================================
 
 def run_sync_command(vessel_str_id, days='1825'):

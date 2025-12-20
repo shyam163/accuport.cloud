@@ -198,6 +198,16 @@
             </div>
             {% endif %}
 
+
+            <!-- PDF Download Button -->
+            <div class="card mb-3">
+                <div class="card-body text-center">
+                    <button type="button" class="btn btn-success w-100" id="download-pdf-btn" onclick="downloadPagePDF()">
+                        <i class="bi bi-file-earmark-pdf"></i> Download PDF
+                    </button>
+                    <small class="text-muted d-block mt-2">Generate report for current view</small>
+                </div>
+            </div>
             <!-- Vessel Equipment Specifications -->
             {% if vessel_specs %}
             <div class="card mb-3">
@@ -417,5 +427,60 @@ document.addEventListener('DOMContentLoaded', function() {
     populateLimitsSidebar();
     populateSpecificDateDropdown();
 });
+
+// Download PDF for current page view
+function downloadPagePDF() {
+    const btn = document.getElementById("download-pdf-btn");
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Generating...';
+    btn.disabled = true;
+    
+    // Determine API endpoint based on system type
+    let apiEndpoint = "/api/reports/";
+    const systemType = "{{ system_type }}";
+    if (systemType.toLowerCase().includes("sewage")) {
+        apiEndpoint += "treated-sewage-pdf";
+    } else if (systemType.toLowerCase().includes("ballast")) {
+        apiEndpoint += "ballast-water-pdf";
+    } else if (systemType.toLowerCase().includes("egcs")) {
+        apiEndpoint += "egcs-pdf";
+    } else {
+        alert("Unknown system type");
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        return;
+    }
+    
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
+    
+    let url = apiEndpoint + "?vessel_id={{ vessel.id }}";
+    url += "&start_date=" + startDate + "&end_date=" + endDate;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error("PDF generation failed");
+            return response.blob();
+        })
+        .then(blob => {
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            const fileType = systemType.replace(/ /g, "");
+            a.download = "{{ vessel.vessel_name }}_" + fileType + "_" + startDate + "_" + endDate + ".pdf";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            a.remove();
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Failed to generate PDF. Please try again.");
+        })
+        .finally(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+}
 </script>
 {% endblock %}

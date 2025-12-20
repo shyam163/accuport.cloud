@@ -11,6 +11,131 @@ from matplotlib.ticker import MaxNLocator
 from datetime import datetime
 import io
 from collections import defaultdict
+
+def is_valid_limit(ideal_low, ideal_high):
+    """Check if limits are valid database values, not sentinel values like -1"""
+    if ideal_low is None or ideal_high is None:
+        return False
+    try:
+        low = float(ideal_low)
+        high = float(ideal_high)
+        # Reject -1 sentinel values and invalid ranges
+        if low < 0 or high < 0:
+            return False
+        if high < low:
+            return False
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+
+
+def normalize_param_name_for_limits(param_name):
+    """
+    Normalize database parameter names to match limit lookup keys in users.sqlite
+
+    Maps: "Phosphate (HR tab). ortho" -> "PHOSPHATE"
+          "pH-Universal (liq)" -> "PH"
+          etc.
+    """
+    if not param_name:
+        return ""
+
+    name = param_name.upper()
+
+    # Direct mappings for common parameters
+    if 'PHOSPHAT' in name:
+        return 'PHOSPHATE'
+    # FIX: Alkalinity M/P detection - check for " M " or " M(" patterns
+    if 'ALKALINITY' in name:
+        if ' M ' in name or ' M(' in name or name.endswith(' M'):
+            return 'ALKALINITY M'
+        elif ' P ' in name or ' P(' in name or name.endswith(' P'):
+            return 'ALKALINITY P'
+        return 'TOTAL ALKALINITY (AS CACO3)'
+    if 'CHLORIDE' in name:
+        return 'CHLORIDE'
+    if 'PH' in name or 'PH-' in name:
+        return 'PH'
+    if 'CONDUCTIV' in name:
+        return 'CONDUCTIVITY'
+    if 'DEHA' in name:
+        return 'DEHA'
+    if 'HYDRAZINE' in name:
+        return 'HYDRAZINE'
+    if 'NITRITE' in name:
+        return 'NITRITE'
+    if 'HARDNESS' in name or 'HARDN' in name:
+        if 'TOTAL' in name or 'AS CACO' in name:
+            return 'TOTAL HARDNESS (AS CACO3)'
+        return 'TOTAL HARDNESS'
+    if 'COD' in name:
+        return 'COD'
+    if 'BOD' in name:
+        return 'BOD'
+    if 'TURBIDITY' in name:
+        return 'TURBIDITY'
+    if 'SUSPENDED' in name or 'TSS' in name:
+        return 'TOTAL SUSPENDED SOLIDS'
+    if 'CHLORINE' in name:
+        if 'FREE' in name:
+            return 'FREE CHLORINE'
+        if 'TOTAL' in name:
+            return 'TOTAL CHLORINE'
+        if 'COMBINED' in name:
+            return 'COMBINED CHLORINE'
+        return 'TOTAL CHLORINE'
+    if 'COPPER' in name or 'CU' in name:
+        return 'COPPER (CU)'
+    if 'IRON' in name and 'OIL' not in name:
+        return 'IRON (FE)'
+    if 'NICKEL' in name or 'NI' in name:
+        return 'NICKEL (NI)'
+    if 'ZINC' in name or 'ZN' in name:
+        return 'ZINC (ZN)'
+    if 'SULPHATE' in name or 'SULFATE' in name:
+        return 'SULPHATE (SO4)'
+    if 'TDS' in name or 'DISSOLVED SOLID' in name:
+        return 'TOTAL DISSOLVED SOLIDS (TDS)'
+
+    # Return original if no match
+    return name.strip()
+
+
+def get_limits_for_pdf(equipment_type, parameter_name):
+    """
+    Get limits from users.sqlite parameter_limits table
+
+    Args:
+        equipment_type: One of 'AUX BOILER & EGE', 'HOTWELL', 'HT & LT COOLING WATER',
+                        'POTABLE WATER', 'SEWAGE'
+        parameter_name: Database parameter name (will be normalized)
+
+    Returns:
+        (lower_limit, upper_limit) tuple, or (None, None) if not found
+    """
+    from models import get_all_limits_for_equipment
+
+    limits = get_all_limits_for_equipment(equipment_type)
+    if not limits:
+        return None, None
+
+    # Normalize the parameter name
+    normalized = normalize_param_name_for_limits(parameter_name)
+
+    # Try exact match first
+    if normalized in limits:
+        return limits[normalized]['lower_limit'], limits[normalized]['upper_limit']
+
+    # Try fuzzy match - check if normalized is contained in any key or vice versa
+    for key, val in limits.items():
+        if normalized in key or key in normalized:
+            return val['lower_limit'], val['upper_limit']
+
+    return None, None
+
+
 from PIL import Image
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
@@ -66,6 +191,10 @@ def compact_label(label):
     if 'chloride' in lbl:
         return 'Chloride'
     if 'alkalinity' in lbl or 'alk' in lbl:
+        if ' p' in lbl or '-p' in lbl or 'p-alk' in lbl:
+            return 'Alkalinity P'
+        elif ' m' in lbl or '-m' in lbl or 'm-alk' in lbl:
+            return 'Alkalinity M'
         return 'Alkalinity'
     if 'hardness' in lbl:
         return 'Hardness'
@@ -163,7 +292,7 @@ def get_unit_label(title):
 
 
 
-def create_line_chart_by_unit(data, title, color_scheme=None, ideal_low=None, ideal_high=None, unit_field='unit_id'):
+def create_line_chart_by_unit(data, title, color_scheme=None, ideal_low=None, ideal_high=None, unit_field='unit_id', equipment_type=None):
     """
     Create a line chart with multiple units/equipment, matching website styling.
     
@@ -206,10 +335,10 @@ def create_line_chart_by_unit(data, title, color_scheme=None, ideal_low=None, id
     fig.patch.set_facecolor('white')
     ax.set_facecolor('white')
     
-    # Add ideal range shading if provided
-    if ideal_low is not None and ideal_high is not None:
-        ax.axhspan(ideal_low, ideal_high, alpha=0.1, color='#28a745',
-                   label='Ideal Range', zorder=1)
+    # Add limit lines if provided (single legend entry)
+    if is_valid_limit(ideal_low, ideal_high):
+        ax.axhline(y=ideal_low, color='#dc3545', linestyle='--', linewidth=1.5, alpha=0.7, label='Limits', zorder=2)
+        ax.axhline(y=ideal_high, color='#dc3545', linestyle='--', linewidth=1.5, alpha=0.7, zorder=2)
     
     # Plot each unit with website colors
     color_idx = 0
@@ -225,7 +354,11 @@ def create_line_chart_by_unit(data, title, color_scheme=None, ideal_low=None, id
         color_idx += 1
     
     # Website-matching formatting
+    # Title with limits shown below
     ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=12, color='#2c3e50')
+    if is_valid_limit(ideal_low, ideal_high):
+        ax.text(0.5, 1.01, f'Limits: {ideal_low:.1f} - {ideal_high:.1f}', transform=ax.transAxes,
+                fontsize=7, color='#888888', ha='center', va='bottom')
     #ax.set_xlabel('Date', fontsize=8, color='#6c757d')  # Removed - intuitive
     ax.set_ylabel(get_unit_label(title), fontsize=7, color='#6c757d')
     
@@ -258,7 +391,7 @@ def create_line_chart_by_unit(data, title, color_scheme=None, ideal_low=None, id
     return buf
 
 
-def create_multi_line_chart(data, parameter_names, title):
+def create_multi_line_chart(data, parameter_names, title, ideal_low=None, ideal_high=None, equipment_type=None):
     """
     Create a chart with multiple parameters (different lines for each parameter)
     
@@ -266,6 +399,8 @@ def create_multi_line_chart(data, parameter_names, title):
         data: List of measurement records
         parameter_names: List of parameter patterns to include
         title: Chart title
+        ideal_low: Lower limit line value
+        ideal_high: Upper limit line value
     
     Returns:
         BytesIO object containing PNG image
@@ -273,8 +408,9 @@ def create_multi_line_chart(data, parameter_names, title):
     if not data:
         return None
     
-    # Organize data by parameter
+    # Organize data by parameter and extract limits if not provided
     param_data = defaultdict(list)
+    found_low, found_high = None, None
     for record in data:
         param_name = record.get('parameter_name', '')
         date_str = record.get('measurement_date', '')
@@ -282,6 +418,11 @@ def create_multi_line_chart(data, parameter_names, title):
         
         if value is None or not date_str:
             continue
+        
+        # Extract limits from first record with limits
+        if found_low is None and record.get('ideal_low') is not None:
+            found_low = record.get('ideal_low')
+            found_high = record.get('ideal_high')
         
         # Match parameter
         for pattern in parameter_names:
@@ -296,10 +437,21 @@ def create_multi_line_chart(data, parameter_names, title):
     if not param_data:
         return None
     
+    # Use found limits if not explicitly provided
+    if ideal_low is None and found_low is not None:
+        ideal_low = float(found_low)
+    if ideal_high is None and found_high is not None:
+        ideal_high = float(found_high)
+    
     # Create figure
     fig, ax = plt.subplots(figsize=(CHART_WIDTH_INCHES, CHART_HEIGHT_INCHES))
     fig.patch.set_facecolor('white')
     ax.set_facecolor('white')
+    
+    # Add limit lines if available (single legend entry)
+    if is_valid_limit(ideal_low, ideal_high):
+        ax.axhline(y=ideal_low, color='#dc3545', linestyle='--', linewidth=1.5, alpha=0.7, label='Limits', zorder=2)
+        ax.axhline(y=ideal_high, color='#dc3545', linestyle='--', linewidth=1.5, alpha=0.7, zorder=2)
     
     color_idx = 0
     for param_name, points in sorted(param_data.items()):
@@ -311,7 +463,11 @@ def create_multi_line_chart(data, parameter_names, title):
                 label=compact_label(param_name), zorder=3)
         color_idx += 1
     
+    # Title with limits shown below
     ax.set_title(compact_label(title), fontsize=12, fontweight='bold', pad=12, color='#2c3e50')
+    if is_valid_limit(ideal_low, ideal_high):
+        ax.text(0.5, 1.01, f'Limits: {ideal_low:.1f} - {ideal_high:.1f}', transform=ax.transAxes,
+                fontsize=7, color='#888888', ha='center', va='bottom')
     #ax.set_xlabel('Date', fontsize=8, color='#6c757d')  # Removed - intuitive
     ax.set_ylabel(get_unit_label(title), fontsize=7, color='#6c757d')
     ax.grid(True, alpha=0.2, linestyle='-', linewidth=0.5, color='#000000')
