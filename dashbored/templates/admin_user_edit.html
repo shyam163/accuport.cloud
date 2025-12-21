@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - {{ edit_user.username }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item active">Edit User</li>
+                </ol>
+            </nav>
+
+            <h2 class="mb-1"><i class="bi bi-person-gear"></i> Edit User</h2>
+            <p class="text-muted">{{ edit_user.username }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- User Details Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-lines-fill"></i> User Details</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin_update_user', user_id=edit_user.id) }}" method="POST">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" value="{{ edit_user.username }}" disabled>
+                                <small class="text-muted">Username cannot be changed</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="full_name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name"
+                                       value="{{ edit_user.full_name or '' }}" placeholder="Enter full name">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ edit_user.email or '' }}" placeholder="user@example.com">
+                                <small class="text-muted">Used for password reset emails</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select class="form-select" id="role" name="role"
+                                        {% if edit_user.id == user.id %}disabled{% endif %}>
+                                    <option value="vessel_manager" {% if edit_user.role == 'vessel_manager' %}selected{% endif %}>Vessel Manager</option>
+                                    <option value="fleet_manager" {% if edit_user.role == 'fleet_manager' %}selected{% endif %}>Fleet Manager</option>
+                                    <option value="admin" {% if edit_user.role == 'admin' %}selected{% endif %}>Administrator</option>
+                                    <option value="vessel_user" {% if edit_user.role == 'vessel_user' %}selected{% endif %}>Vessel User</option>
+                                </select>
+                                {% if edit_user.id == user.id %}
+                                <small class="text-muted">Cannot change your own role</small>
+                                <input type="hidden" name="role" value="{{ edit_user.role }}">
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Admin
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Change Password Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-key"></i> Change Password</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin_change_user_password', user_id=edit_user.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password"
+                                   placeholder="Enter new password" required minlength="6">
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                   placeholder="Confirm new password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="bi bi-key"></i> Change Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Account Status Card -->
+            <div class="card {% if edit_user.is_active %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-header {% if edit_user.is_active %}bg-success{% else %}bg-danger{% endif %} text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-{% if edit_user.is_active %}check-circle{% else %}x-circle{% endif %}"></i>
+                        Account Status
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    <p class="mb-3">
+                        This account is currently
+                        <strong>{% if edit_user.is_active %}Active{% else %}Inactive{% endif %}</strong>
+                    </p>
+
+                    {% if edit_user.id != user.id %}
+                    <form action="{{ url_for('api_toggle_user_status') }}" method="POST">
+                        <input type="hidden" name="user_id" value="{{ edit_user.id }}">
+                        <input type="hidden" name="is_active" value="{% if edit_user.is_active %}0{% else %}1{% endif %}">
+                        <input type="hidden" name="redirect_to_edit" value="1">
+                        <button type="submit" class="btn {% if edit_user.is_active %}btn-danger{% else %}btn-success{% endif %} w-100">
+                            {% if edit_user.is_active %}
+                            <i class="bi bi-pause-circle"></i> Deactivate Account
+                            {% else %}
+                            <i class="bi bi-play-circle"></i> Activate Account
+                            {% endif %}
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> You cannot deactivate your own account
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

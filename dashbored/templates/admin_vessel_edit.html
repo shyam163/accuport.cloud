@@ -87,8 +87,12 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label for="me1_make" class="form-label">Make</label>
-                                <input type="text" class="form-control" id="me1_make" name="me1_make" 
-                                       value="{{ details.me1_make or '' }}" placeholder="e.g., MAN B&W">
+                                <select class="form-select" id="me1_make" name="me1_make">
+                                    <option value="" {% if not details.me1_make %}selected{% endif %}>Select Make</option>
+                                    <option value="MAN" {% if details.me1_make == 'MAN' %}selected{% endif %}>MAN</option>
+                                    <option value="Wartsila" {% if details.me1_make == 'Wartsila' %}selected{% endif %}>Wartsila</option>
+                                    <option value="WinGD" {% if details.me1_make == 'WinGD' %}selected{% endif %}>WinGD</option>
+                                </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="me1_model" class="form-label">Model</label>
@@ -102,27 +106,76 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="me1_system_oil" class="form-label">System Oil</label>
                                 <input type="text" class="form-control" id="me1_system_oil" name="me1_system_oil" 
                                        value="{{ details.me1_system_oil or '' }}" placeholder="e.g., Shell Alexia S6 40">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="me1_cylinder_oil" class="form-label">Cylinder Oil</label>
                                 <input type="text" class="form-control" id="me1_cylinder_oil" name="me1_cylinder_oil" 
                                        value="{{ details.me1_cylinder_oil or '' }}" placeholder="e.g., Shell Alexia S5 70">
                             </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="me1_cylinder_oil_tbn" class="form-label">Cylinder Oil TBN</label>
+                                <select class="form-select" id="me1_cylinder_oil_tbn" name="me1_cylinder_oil_tbn">
+                                    <option value="" {% if not details.me1_cylinder_oil_tbn %}selected{% endif %}>Select TBN</option>
+                                    <option value="0-25" {% if details.me1_cylinder_oil_tbn == '0-25' %}selected{% endif %}>0-25</option>
+                                    <option value="25-40" {% if details.me1_cylinder_oil_tbn == '25-40' %}selected{% endif %}>25-40</option>
+                                    <option value="40-60" {% if details.me1_cylinder_oil_tbn == '40-60' %}selected{% endif %}>40-60</option>
+                                    <option value="60-80" {% if details.me1_cylinder_oil_tbn == '60-80' %}selected{% endif %}>60-80</option>
+                                    <option value="80-100" {% if details.me1_cylinder_oil_tbn == '80-100' %}selected{% endif %}>80-100</option>
+                                    <option value="140+" {% if details.me1_cylinder_oil_tbn == '140+' %}selected{% endif %}>140+</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="me1_fuel1" class="form-label">Fuel 1</label>
                                 <input type="text" class="form-control" id="me1_fuel1" name="me1_fuel1" 
-                                       value="{{ details.me1_fuel1 or '' }}" placeholder="e.g., VLSFO, HFO, MGO">
+                                       value="{{ details.me1_fuel1 or '' }}" placeholder="e.g., VLSFO">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
+                                <label for="me1_fuel1_sulphur" class="form-label">Fuel 1 Sulphur %</label>
+                                <select class="form-select" id="me1_fuel1_sulphur" name="me1_fuel1_sulphur">
+                                    <option value="" {% if not details.me1_fuel1_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.me1_fuel1_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.me1_fuel1_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.me1_fuel1_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.me1_fuel1_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
                                 <label for="me1_fuel2" class="form-label">Fuel 2</label>
                                 <input type="text" class="form-control" id="me1_fuel2" name="me1_fuel2" 
-                                       value="{{ details.me1_fuel2 or '' }}" placeholder="e.g., MGO">
+                                       value="{{ details.me1_fuel2 or '' }}" placeholder="e.g., HFO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="me1_fuel2_sulphur" class="form-label">Fuel 2 Sulphur %</label>
+                                <select class="form-select" id="me1_fuel2_sulphur" name="me1_fuel2_sulphur">
+                                    <option value="" {% if not details.me1_fuel2_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.me1_fuel2_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.me1_fuel2_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.me1_fuel2_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.me1_fuel2_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="me1_fuel3" class="form-label">Fuel 3</label>
+                                <input type="text" class="form-control" id="me1_fuel3" name="me1_fuel3" 
+                                       value="{{ details.me1_fuel3 or '' }}" placeholder="e.g., MGO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="me1_fuel3_sulphur" class="form-label">Fuel 3 Sulphur %</label>
+                                <select class="form-select" id="me1_fuel3_sulphur" name="me1_fuel3_sulphur">
+                                    <option value="" {% if not details.me1_fuel3_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.me1_fuel3_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.me1_fuel3_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.me1_fuel3_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.me1_fuel3_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
                             </div>
                         </div>
 
@@ -133,8 +186,12 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label for="me2_make" class="form-label">Make</label>
-                                <input type="text" class="form-control" id="me2_make" name="me2_make" 
-                                       value="{{ details.me2_make or '' }}" placeholder="e.g., MAN B&W">
+                                <select class="form-select" id="me2_make" name="me2_make">
+                                    <option value="" {% if not details.me2_make %}selected{% endif %}>Select Make</option>
+                                    <option value="MAN" {% if details.me2_make == 'MAN' %}selected{% endif %}>MAN</option>
+                                    <option value="Wartsila" {% if details.me2_make == 'Wartsila' %}selected{% endif %}>Wartsila</option>
+                                    <option value="WinGD" {% if details.me2_make == 'WinGD' %}selected{% endif %}>WinGD</option>
+                                </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="me2_model" class="form-label">Model</label>
@@ -148,27 +205,76 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="me2_system_oil" class="form-label">System Oil</label>
                                 <input type="text" class="form-control" id="me2_system_oil" name="me2_system_oil" 
                                        value="{{ details.me2_system_oil or '' }}" placeholder="e.g., Shell Alexia S6 40">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label for="me2_cylinder_oil" class="form-label">Cylinder Oil</label>
                                 <input type="text" class="form-control" id="me2_cylinder_oil" name="me2_cylinder_oil" 
                                        value="{{ details.me2_cylinder_oil or '' }}" placeholder="e.g., Shell Alexia S5 70">
                             </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="me2_cylinder_oil_tbn" class="form-label">Cylinder Oil TBN</label>
+                                <select class="form-select" id="me2_cylinder_oil_tbn" name="me2_cylinder_oil_tbn">
+                                    <option value="" {% if not details.me2_cylinder_oil_tbn %}selected{% endif %}>Select TBN</option>
+                                    <option value="0-25" {% if details.me2_cylinder_oil_tbn == '0-25' %}selected{% endif %}>0-25</option>
+                                    <option value="25-40" {% if details.me2_cylinder_oil_tbn == '25-40' %}selected{% endif %}>25-40</option>
+                                    <option value="40-60" {% if details.me2_cylinder_oil_tbn == '40-60' %}selected{% endif %}>40-60</option>
+                                    <option value="60-80" {% if details.me2_cylinder_oil_tbn == '60-80' %}selected{% endif %}>60-80</option>
+                                    <option value="80-100" {% if details.me2_cylinder_oil_tbn == '80-100' %}selected{% endif %}>80-100</option>
+                                    <option value="140+" {% if details.me2_cylinder_oil_tbn == '140+' %}selected{% endif %}>140+</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <label for="me2_fuel1" class="form-label">Fuel 1</label>
                                 <input type="text" class="form-control" id="me2_fuel1" name="me2_fuel1" 
-                                       value="{{ details.me2_fuel1 or '' }}" placeholder="e.g., VLSFO, HFO, MGO">
+                                       value="{{ details.me2_fuel1 or '' }}" placeholder="e.g., VLSFO">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-3 mb-3">
+                                <label for="me2_fuel1_sulphur" class="form-label">Fuel 1 Sulphur %</label>
+                                <select class="form-select" id="me2_fuel1_sulphur" name="me2_fuel1_sulphur">
+                                    <option value="" {% if not details.me2_fuel1_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.me2_fuel1_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.me2_fuel1_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.me2_fuel1_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.me2_fuel1_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
                                 <label for="me2_fuel2" class="form-label">Fuel 2</label>
                                 <input type="text" class="form-control" id="me2_fuel2" name="me2_fuel2" 
-                                       value="{{ details.me2_fuel2 or '' }}" placeholder="e.g., MGO">
+                                       value="{{ details.me2_fuel2 or '' }}" placeholder="e.g., HFO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="me2_fuel2_sulphur" class="form-label">Fuel 2 Sulphur %</label>
+                                <select class="form-select" id="me2_fuel2_sulphur" name="me2_fuel2_sulphur">
+                                    <option value="" {% if not details.me2_fuel2_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.me2_fuel2_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.me2_fuel2_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.me2_fuel2_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.me2_fuel2_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="me2_fuel3" class="form-label">Fuel 3</label>
+                                <input type="text" class="form-control" id="me2_fuel3" name="me2_fuel3" 
+                                       value="{{ details.me2_fuel3 or '' }}" placeholder="e.g., MGO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="me2_fuel3_sulphur" class="form-label">Fuel 3 Sulphur %</label>
+                                <select class="form-select" id="me2_fuel3_sulphur" name="me2_fuel3_sulphur">
+                                    <option value="" {% if not details.me2_fuel3_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.me2_fuel3_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.me2_fuel3_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.me2_fuel3_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.me2_fuel3_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -188,15 +294,54 @@
                                 <input type="text" class="form-control" id="ae_system_oil" name="ae_system_oil" 
                                        value="{{ details.ae_system_oil or '' }}" placeholder="e.g., Shell Gadinia S3 40">
                             </div>
-                            <div class="col-md-4 mb-3">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
                                 <label for="ae_fuel1" class="form-label">Fuel 1</label>
                                 <input type="text" class="form-control" id="ae_fuel1" name="ae_fuel1" 
                                        value="{{ details.ae_fuel1 or '' }}" placeholder="e.g., MGO">
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
+                                <label for="ae_fuel1_sulphur" class="form-label">Fuel 1 Sulphur %</label>
+                                <select class="form-select" id="ae_fuel1_sulphur" name="ae_fuel1_sulphur">
+                                    <option value="" {% if not details.ae_fuel1_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.ae_fuel1_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.ae_fuel1_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.ae_fuel1_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.ae_fuel1_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
                                 <label for="ae_fuel2" class="form-label">Fuel 2</label>
                                 <input type="text" class="form-control" id="ae_fuel2" name="ae_fuel2" 
                                        value="{{ details.ae_fuel2 or '' }}" placeholder="e.g., LSMGO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="ae_fuel2_sulphur" class="form-label">Fuel 2 Sulphur %</label>
+                                <select class="form-select" id="ae_fuel2_sulphur" name="ae_fuel2_sulphur">
+                                    <option value="" {% if not details.ae_fuel2_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.ae_fuel2_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.ae_fuel2_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.ae_fuel2_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.ae_fuel2_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="ae_fuel3" class="form-label">Fuel 3</label>
+                                <input type="text" class="form-control" id="ae_fuel3" name="ae_fuel3" 
+                                       value="{{ details.ae_fuel3 or '' }}" placeholder="e.g., HFO">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="ae_fuel3_sulphur" class="form-label">Fuel 3 Sulphur %</label>
+                                <select class="form-select" id="ae_fuel3_sulphur" name="ae_fuel3_sulphur">
+                                    <option value="" {% if not details.ae_fuel3_sulphur %}selected{% endif %}>Select Sulphur</option>
+                                    <option value="0%" {% if details.ae_fuel3_sulphur == '0%' %}selected{% endif %}>0%</option>
+                                    <option value="<0.1%" {% if details.ae_fuel3_sulphur == '<0.1%' %}selected{% endif %}>Below 0.1%</option>
+                                    <option value="0.1%-0.5%" {% if details.ae_fuel3_sulphur == '0.1%-0.5%' %}selected{% endif %}>0.1% - 0.5%</option>
+                                    <option value=">0.5%" {% if details.ae_fuel3_sulphur == '>0.5%' %}selected{% endif %}>Above 0.5%</option>
+                                </select>
                             </div>
                         </div>
 

@@ -116,6 +116,11 @@ def get_vessel_details_for_display(vessel_id: int, equipment_filter: Optional[st
         'me1_cylinder_oil': ('main_engines', 'ME1 - Cylinder Oil'),
         'me1_fuel1': ('main_engines', 'ME1 - Fuel 1'),
         'me1_fuel2': ('main_engines', 'ME1 - Fuel 2'),
+        'me1_cylinder_oil_tbn': ('main_engines', 'ME1 - Cylinder Oil TBN'),
+        'me1_fuel1_sulphur': ('main_engines', 'ME1 - Fuel 1 Sulphur %'),
+        'me1_fuel2_sulphur': ('main_engines', 'ME1 - Fuel 2 Sulphur %'),
+        'me1_fuel3': ('main_engines', 'ME1 - Fuel 3'),
+        'me1_fuel3_sulphur': ('main_engines', 'ME1 - Fuel 3 Sulphur %'),
 
         # Main Engine 2
         'me2_make': ('main_engines', 'ME2 - Make'),
@@ -125,11 +130,20 @@ def get_vessel_details_for_display(vessel_id: int, equipment_filter: Optional[st
         'me2_cylinder_oil': ('main_engines', 'ME2 - Cylinder Oil'),
         'me2_fuel1': ('main_engines', 'ME2 - Fuel 1'),
         'me2_fuel2': ('main_engines', 'ME2 - Fuel 2'),
+        'me2_cylinder_oil_tbn': ('main_engines', 'ME2 - Cylinder Oil TBN'),
+        'me2_fuel1_sulphur': ('main_engines', 'ME2 - Fuel 1 Sulphur %'),
+        'me2_fuel2_sulphur': ('main_engines', 'ME2 - Fuel 2 Sulphur %'),
+        'me2_fuel3': ('main_engines', 'ME2 - Fuel 3'),
+        'me2_fuel3_sulphur': ('main_engines', 'ME2 - Fuel 3 Sulphur %'),
 
         # Aux Engines Shared
         'ae_system_oil': ('aux_engines', 'AE - System Oil'),
         'ae_fuel1': ('aux_engines', 'AE - Fuel 1'),
         'ae_fuel2': ('aux_engines', 'AE - Fuel 2'),
+        'ae_fuel1_sulphur': ('aux_engines', 'AE - Fuel 1 Sulphur %'),
+        'ae_fuel2_sulphur': ('aux_engines', 'AE - Fuel 2 Sulphur %'),
+        'ae_fuel3': ('aux_engines', 'AE - Fuel 3'),
+        'ae_fuel3_sulphur': ('aux_engines', 'AE - Fuel 3 Sulphur %'),
 
         # AE 1
         'ae1_make': ('aux_engines', 'AE1 - Make'),

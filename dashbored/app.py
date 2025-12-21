@@ -203,6 +203,56 @@ def login():
 
     return render_template('login.html')
 
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Password reset flow"""
+    from admin_models import get_user_by_username, reset_user_password
+    from email_utils import generate_password, send_password_reset_email
+
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        step = request.form.get('step')
+        username = request.form.get('username', '').strip()
+
+        if step == 'request':
+            # Step 1: User entered username, verify and show confirmation
+            user = get_user_by_username(username)
+            if user and user['email'] and user['is_active']:
+                # Mask the email for display
+                email = user['email']
+                at_pos = email.find('@')
+                if at_pos > 2:
+                    masked_email = email[0] + '*' * (at_pos - 2) + email[at_pos - 1:]
+                else:
+                    masked_email = email[0] + '*' * at_pos + email[at_pos:]
+                return render_template('forgot_password.html', step='confirm',
+                                     username=username, masked_email=masked_email)
+            else:
+                flash('Username not found or no email registered. Contact your administrator.', 'danger')
+                return render_template('forgot_password.html', step='request')
+
+        elif step == 'confirm':
+            # Step 2: User confirmed, generate password and send email
+            user = get_user_by_username(username)
+            if user and user['email'] and user['is_active']:
+                new_password = generate_password()
+                if reset_user_password(user['id'], new_password):
+                    success, message = send_password_reset_email(user['email'], username, new_password)
+                    if success:
+                        return render_template('forgot_password.html', step='success')
+                    else:
+                        flash(f'Failed to send email: {message}', 'danger')
+                else:
+                    flash('Failed to reset password. Please try again.', 'danger')
+            else:
+                flash('User not found.', 'danger')
+            return render_template('forgot_password.html', step='request')
+
+    return render_template('forgot_password.html', step='request')
 @app.route('/logout')
 @login_required
 def logout():
@@ -1245,6 +1295,11 @@ def admin_edit_vessel_details(vessel_id):
             'me1_cylinder_oil': request.form.get('me1_cylinder_oil', '').strip(),
             'me1_fuel1': request.form.get('me1_fuel1', '').strip(),
             'me1_fuel2': request.form.get('me1_fuel2', '').strip(),
+            'me1_cylinder_oil_tbn': request.form.get('me1_cylinder_oil_tbn', '').strip(),
+            'me1_fuel1_sulphur': request.form.get('me1_fuel1_sulphur', '').strip(),
+            'me1_fuel2_sulphur': request.form.get('me1_fuel2_sulphur', '').strip(),
+            'me1_fuel3': request.form.get('me1_fuel3', '').strip(),
+            'me1_fuel3_sulphur': request.form.get('me1_fuel3_sulphur', '').strip(),
             'me2_make': request.form.get('me2_make', '').strip(),
             'me2_model': request.form.get('me2_model', '').strip(),
             'me2_serial': request.form.get('me2_serial', '').strip(),
@@ -1252,9 +1307,18 @@ def admin_edit_vessel_details(vessel_id):
             'me2_cylinder_oil': request.form.get('me2_cylinder_oil', '').strip(),
             'me2_fuel1': request.form.get('me2_fuel1', '').strip(),
             'me2_fuel2': request.form.get('me2_fuel2', '').strip(),
+            'me2_cylinder_oil_tbn': request.form.get('me2_cylinder_oil_tbn', '').strip(),
+            'me2_fuel1_sulphur': request.form.get('me2_fuel1_sulphur', '').strip(),
+            'me2_fuel2_sulphur': request.form.get('me2_fuel2_sulphur', '').strip(),
+            'me2_fuel3': request.form.get('me2_fuel3', '').strip(),
+            'me2_fuel3_sulphur': request.form.get('me2_fuel3_sulphur', '').strip(),
             'ae_system_oil': request.form.get('ae_system_oil', '').strip(),
             'ae_fuel1': request.form.get('ae_fuel1', '').strip(),
             'ae_fuel2': request.form.get('ae_fuel2', '').strip(),
+            'ae_fuel1_sulphur': request.form.get('ae_fuel1_sulphur', '').strip(),
+            'ae_fuel2_sulphur': request.form.get('ae_fuel2_sulphur', '').strip(),
+            'ae_fuel3': request.form.get('ae_fuel3', '').strip(),
+            'ae_fuel3_sulphur': request.form.get('ae_fuel3_sulphur', '').strip(),
             'ae1_make': request.form.get('ae1_make', '').strip(),
             'ae1_model': request.form.get('ae1_model', '').strip(),
             'ae1_serial': request.form.get('ae1_serial', '').strip(),
@@ -1476,6 +1540,74 @@ def api_assign_hierarchy():
     
     return redirect(url_for('admin_dashboard'))
 
+
+
+@app.route('/admin/users/edit/<int:user_id>')
+@login_required
+def admin_edit_user(user_id):
+    """Admin page to edit a user"""
+    if current_user.role != 'admin':
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from admin_models import get_user_by_id
+    edit_user = get_user_by_id(user_id)
+    if not edit_user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin_user_edit.html', edit_user=edit_user, user=current_user)
+
+
+@app.route('/admin/users/update/<int:user_id>', methods=['POST'])
+@login_required
+def admin_update_user(user_id):
+    """Update user details"""
+    if current_user.role != 'admin':
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from admin_models import update_user
+    full_name = request.form.get('full_name', '').strip()
+    email = request.form.get('email', '').strip()
+    role = request.form.get('role', 'vessel_manager')
+
+    if update_user(user_id, full_name, email, role, current_user.id):
+        flash('User updated successfully!', 'success')
+    else:
+        flash('Failed to update user.', 'danger')
+
+    return redirect(url_for('admin_edit_user', user_id=user_id))
+
+
+@app.route('/admin/users/change-password/<int:user_id>', methods=['POST'])
+@login_required
+def admin_change_user_password(user_id):
+    """Change user password from admin panel"""
+    if current_user.role != 'admin':
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    from admin_models import reset_user_password
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not new_password or len(new_password) < 6:
+        flash('Password must be at least 6 characters.', 'danger')
+        return redirect(url_for('admin_edit_user', user_id=user_id))
+
+    if new_password != confirm_password:
+        flash('Passwords do not match.', 'danger')
+        return redirect(url_for('admin_edit_user', user_id=user_id))
+
+    if reset_user_password(user_id, new_password, current_user.id):
+        flash('Password changed successfully!', 'success')
+    else:
+        flash('Failed to change password.', 'danger')
+
+    return redirect(url_for('admin_edit_user', user_id=user_id))
+
+
 @app.route('/api/admin/toggle-user-status', methods=['POST'])
 @admin_required
 def api_toggle_user_status():
@@ -1483,13 +1615,15 @@ def api_toggle_user_status():
     data = request.form
     user_id = int(data.get('user_id'))
     is_active = int(data.get('is_active'))
+    redirect_to_edit = data.get('redirect_to_edit')
     
     if update_user_status(user_id, is_active, current_user.id):
         status = 'activated' if is_active else 'deactivated'
         flash(f'User {status} successfully!', 'success')
     else:
         flash('Failed to update user status.', 'danger')
-    
+    if redirect_to_edit:
+        return redirect(url_for('admin_edit_user', user_id=user_id))
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/api/admin/change-user-password', methods=['POST'])

@@ -547,3 +547,89 @@ def get_audit_log(limit=100, user_id=None, action_type=None):
         
         cursor.execute(query, params)
         return list_from_rows(cursor.fetchall())
+
+
+def get_user_by_username(username):
+    """Get user by username for password reset"""
+    with get_users_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, email, full_name, role, is_active FROM users WHERE username = ?", (username,))
+        row = cursor.fetchone()
+        if row:
+            return {
+                'id': row[0],
+                'username': row[1],
+                'email': row[2],
+                'full_name': row[3],
+                'role': row[4],
+                'is_active': row[5]
+            }
+        return None
+
+
+def get_user_by_id(user_id):
+    """Get user by ID for edit page"""
+    with get_users_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, email, full_name, role, is_active FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row:
+            return {
+                'id': row[0],
+                'username': row[1],
+                'email': row[2],
+                'full_name': row[3],
+                'role': row[4],
+                'is_active': row[5]
+            }
+        return None
+
+
+def update_user(user_id, full_name, email, role, admin_user_id):
+    """Update user details"""
+    try:
+        with get_users_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE users
+                SET full_name = ?, email = ?, role = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (full_name, email, role, user_id))
+
+            # Log the action
+            cursor.execute('''
+                INSERT INTO audit_log (user_id, action, target_type, target_id, details)
+                VALUES (?, 'update_user', 'user', ?, ?)
+            ''', (admin_user_id, user_id, f'Updated user details: full_name={full_name}, email={email}, role={role}'))
+
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"Error updating user: {e}")
+        return False
+
+
+def reset_user_password(user_id, new_password, admin_user_id=None):
+    """Reset user password and return success status"""
+    try:
+        with get_users_connection() as conn:
+            cursor = conn.cursor()
+            password_hash = hash_password(new_password)
+            cursor.execute('''
+                UPDATE users
+                SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (password_hash, user_id))
+
+            # Log the action
+            log_user_id = admin_user_id if admin_user_id else user_id
+            cursor.execute('''
+                INSERT INTO audit_log (user_id, action, target_type, target_id, details)
+                VALUES (?, 'password_reset', 'user', ?, 'Password was reset')
+            ''', (log_user_id, user_id))
+
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        return False
